@@ -1,0 +1,1837 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
+<title>Atlas — GCC Source of Truth</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;450;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  color-scheme: light;
+  --bg:#F4F5F7; --surface:#FFFFFF; --surface-2:#F8F9FC;
+  --ink:#15172A; --muted:#6B7189; --faint:#9AA0B4;
+  --line:#E7E9F0; --line-2:#EEF0F5;
+  --brand:#2E3192; --brand-2:#3C40B6; --brand-soft:#ECEDFB;
+  --accent:#E08B00; --accent-bright:#F5A524; --accent-soft:#FDF3DD;
+  --live:#17B26A; --live-soft:#E6F7EE;
+  --hiring:#2E7BF6; --hiring-soft:#E7F0FE;
+  --expand:#8C5BE8; --expand-soft:#F1EAFD;
+  --teal:#0E9CA5; --teal-soft:#E0F5F6;
+  --announce:#E08B00; --announce-soft:#FDF3DD;
+  --danger:#E5484D;
+  --r-lg:22px; --r-md:16px; --r-sm:11px;
+  --shadow-sm:0 1px 2px rgba(20,22,45,.05);
+  --shadow-md:0 8px 24px -8px rgba(23,27,60,.14);
+  --shadow-lg:0 20px 48px -16px rgba(23,27,60,.28);
+  --sans:"Inter",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  --disp:"Space Grotesk","Inter",sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{
+  font-family:var(--sans); background:#E4E6EE; color:var(--ink);
+  -webkit-font-smoothing:antialiased; text-rendering:optimizeLegibility;
+  display:flex; align-items:center; justify-content:center; min-height:100dvh;
+  background:
+    radial-gradient(1200px 600px at 50% -10%, #EEF0F8 0%, #E4E6EE 55%, #DEE0EA 100%);
+}
+button{font-family:inherit;color:inherit;background:none;border:none;cursor:pointer}
+a{color:inherit;text-decoration:none}
+:focus-visible{outline:2.5px solid var(--brand-2); outline-offset:2px; border-radius:6px}
+@media (prefers-reduced-motion: reduce){*{animation:none!important;transition:none!important}}
+/* icon sizing safety net for inline icons without explicit dims */
+.searchbar>svg,.searchhead .inp>svg{width:20px;height:20px;color:var(--faint);flex:0 0 auto}
+.est>svg{width:15px;height:15px;flex:0 0 auto}
+.brand .glyph>svg{width:18px;height:18px}
+.res .av>svg{width:20px;height:20px}
+.cap svg{width:14px;height:14px}
+
+/* ---------- device frame ---------- */
+.device{
+  width:432px; height:min(924px,96dvh); background:#0C0D14;
+  border-radius:52px; padding:11px; box-shadow:var(--shadow-lg);
+  position:relative;
+}
+.app{
+  position:relative; width:100%; height:100%; background:var(--bg);
+  border-radius:42px; overflow:hidden; display:flex; flex-direction:column;
+}
+@media (max-width:520px){
+  body{background:var(--bg)}
+  .device{width:100vw;height:100dvh;border-radius:0;padding:0;box-shadow:none}
+  .app{border-radius:0}
+}
+
+/* ---------- status bar ---------- */
+.statusbar{
+  flex:0 0 auto; display:flex; align-items:center; justify-content:space-between;
+  padding:calc(env(safe-area-inset-top,0px) + 11px) 24px 7px;
+  font-family:var(--disp); font-weight:600; font-size:14px; color:var(--ink);
+  background:var(--surface);
+}
+.statusbar .dots{display:flex;gap:5px;align-items:center}
+.statusbar svg{display:block}
+
+/* ---------- app bar ---------- */
+.appbar{
+  flex:0 0 auto; background:var(--surface); border-bottom:1px solid var(--line-2);
+  padding:4px 18px 12px; display:flex; align-items:center; gap:12px; min-height:52px;
+}
+.appbar.flush{border-bottom:none}
+.appbar .back{width:38px;height:38px;border-radius:11px;display:grid;place-items:center;
+  background:var(--surface-2);color:var(--ink);flex:0 0 auto}
+.appbar .back:active{background:var(--line)}
+.brand{display:flex;align-items:center;gap:9px}
+.brand .glyph{width:32px;height:32px;border-radius:9px;background:var(--brand);
+  display:grid;place-items:center;box-shadow:0 2px 8px -2px rgba(46,49,146,.5)}
+.brand .wm{font-family:var(--disp);font-weight:700;font-size:20px;letter-spacing:-.4px}
+.brand .wm b{color:var(--brand)}
+.appbar .right{margin-left:auto;display:flex;align-items:center;gap:8px}
+.pill-india{display:flex;align-items:center;gap:6px;background:var(--surface-2);
+  border:1px solid var(--line);border-radius:999px;padding:6px 11px 6px 9px;
+  font-size:12.5px;font-weight:600;color:var(--muted)}
+.pill-india .dot{width:7px;height:7px;border-radius:50%;background:var(--live)}
+.appbar .title{font-family:var(--disp);font-weight:600;font-size:18px;letter-spacing:-.3px}
+
+/* ---------- content scroll ---------- */
+.content{flex:1 1 auto;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch}
+.content::-webkit-scrollbar{width:0}
+.pad{padding:18px}
+.gap-tight>*+*{margin-top:10px}
+
+/* ---------- bottom nav ---------- */
+.bottomnav{
+  flex:0 0 auto; background:var(--surface); border-top:1px solid var(--line-2);
+  display:flex; justify-content:space-around; align-items:stretch;
+  padding:8px 6px calc(env(safe-area-inset-bottom,0px) + 8px);
+}
+.navitem{display:flex;flex-direction:column;align-items:center;gap:4px;flex:1;
+  padding:5px 2px;color:var(--faint);position:relative;border-radius:12px}
+.navitem .lab{font-size:10.5px;font-weight:600;letter-spacing:-.1px}
+.navitem.active{color:var(--brand)}
+.navitem.active .ic{transform:translateY(-1px)}
+.navitem .ic svg{width:23px;height:23px}
+.navitem.active::before{content:"";position:absolute;top:0;width:22px;height:3px;
+  border-radius:0 0 4px 4px;background:var(--brand)}
+
+/* ---------- hero (the signature block) ---------- */
+.hero{padding:20px 18px 22px;background:
+  linear-gradient(180deg,var(--surface) 0%,var(--surface) 58%,var(--bg) 100%)}
+.hero .greet{color:var(--muted);font-size:14px;font-weight:500}
+.hero .greet b{color:var(--ink);font-weight:600}
+.searchbar{margin-top:14px;display:flex;align-items:center;gap:10px;
+  background:var(--surface-2);border:1px solid var(--line);border-radius:15px;
+  padding:13px 15px;color:var(--faint);box-shadow:var(--shadow-sm)}
+.searchbar span{font-size:15px;font-weight:450;color:var(--muted)}
+.searchbar .k{margin-left:auto;font-size:11px;color:var(--faint);
+  border:1px solid var(--line);border-radius:6px;padding:2px 6px}
+
+.truthcard{margin-top:18px;background:var(--surface);border:1px solid var(--line);
+  border-radius:var(--r-lg);box-shadow:var(--shadow-md);overflow:hidden}
+.truthcard .top{padding:18px 18px 16px}
+.truthcard .cap{display:flex;align-items:center;gap:7px;color:var(--muted);
+  font-size:12.5px;font-weight:600}
+.truthcard .cap .live{width:6px;height:6px;border-radius:50%;background:var(--live);
+  box-shadow:0 0 0 3px var(--live-soft)}
+.bignum{font-family:var(--disp);font-weight:600;font-size:60px;line-height:.98;
+  letter-spacing:-2px;margin-top:10px;font-variant-numeric:tabular-nums;color:var(--ink)}
+.bignum .u{font-size:22px;color:var(--muted);letter-spacing:-.5px;margin-left:8px}
+.bigsub{margin-top:5px;font-size:14.5px;color:var(--muted);font-weight:500}
+.bigsub b{color:var(--ink);font-weight:600}
+
+/* range strip — "show the disagreement" */
+.range{margin:16px 18px 0;padding:14px 15px;background:var(--surface-2);
+  border:1px solid var(--line);border-radius:14px}
+.range .rl{display:flex;justify-content:space-between;align-items:baseline;
+  font-size:12.5px;color:var(--muted);font-weight:500}
+.range .rl b{color:var(--ink);font-weight:600}
+.range .track{margin:11px 0 7px;height:7px;border-radius:999px;position:relative;
+  background:linear-gradient(90deg,var(--line) 0%,#DADDEA 100%)}
+.range .fill{position:absolute;left:8%;right:28%;top:0;bottom:0;border-radius:999px;
+  background:linear-gradient(90deg,var(--brand-soft),#C9CBF0)}
+.range .mark{position:absolute;top:50%;width:14px;height:14px;border-radius:50%;
+  background:var(--brand);border:3px solid #fff;transform:translate(-50%,-50%);
+  box-shadow:0 2px 6px rgba(46,49,146,.45)}
+.range .ends{display:flex;justify-content:space-between;font-size:11.5px;color:var(--faint);
+  font-variant-numeric:tabular-nums;font-weight:500}
+
+/* source chip — provenance made visible (the amber "receipt") */
+.srcrow{margin-top:16px;padding:0 18px 18px;display:flex;align-items:center;gap:8px;
+  flex-wrap:wrap}
+.srcchip{display:inline-flex;align-items:center;gap:6px;background:var(--accent-soft);
+  color:#9A6200;border:1px solid #F2DCA6;border-radius:999px;
+  padding:6px 11px 6px 9px;font-size:12px;font-weight:600}
+.srcchip svg{width:14px;height:14px}
+.srcchip .ch{opacity:.55}
+.est{display:inline-flex;align-items:center;gap:6px;background:var(--surface-2);
+  color:var(--muted);border:1px solid var(--line);border-radius:999px;
+  padding:6px 11px;font-size:12px;font-weight:600}
+
+/* ---------- supporting stat row ---------- */
+.statrow{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--line-2);
+  border:1px solid var(--line);border-radius:var(--r-md);overflow:hidden;margin-top:4px}
+.statcell{background:var(--surface);padding:14px 13px}
+.statcell .v{font-family:var(--disp);font-weight:600;font-size:23px;letter-spacing:-.6px;
+  font-variant-numeric:tabular-nums}
+.statcell .v .u{font-size:13px;color:var(--muted)}
+.statcell .l{margin-top:3px;font-size:11.5px;color:var(--muted);font-weight:500;line-height:1.3}
+.statcell .src{margin-top:8px;display:inline-flex;align-items:center;gap:4px;
+  font-size:10.5px;color:var(--accent);font-weight:600}
+.statcell .src svg{width:11px;height:11px}
+
+/* ---------- section head ---------- */
+.sec{padding:24px 18px 0}
+.sechead{display:flex;align-items:center;justify-content:space-between;margin-bottom:13px}
+.sechead h2{font-family:var(--disp);font-weight:600;font-size:18.5px;letter-spacing:-.4px}
+.sechead .more{font-size:13px;font-weight:600;color:var(--brand);display:flex;
+  align-items:center;gap:2px}
+.seclead{font-size:13px;color:var(--muted);margin:-6px 0 13px;line-height:1.45}
+
+/* ---------- module tiles ---------- */
+.tiles{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.tile{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-md);
+  padding:15px;text-align:left;transition:transform .12s ease,box-shadow .12s ease;
+  display:flex;flex-direction:column;gap:12px;min-height:116px}
+.tile:active{transform:scale(.975)}
+.tile .ic{width:40px;height:40px;border-radius:11px;display:grid;place-items:center}
+.tile .ic svg{width:21px;height:21px}
+.tile .tt{font-weight:600;font-size:14.5px;letter-spacing:-.2px}
+.tile .ts{font-size:12px;color:var(--muted);font-weight:500;margin-top:2px}
+.tile .meta{margin-top:auto;font-family:var(--disp);font-weight:600;font-size:13px;
+  color:var(--ink);font-variant-numeric:tabular-nums}
+.ic-brand{background:var(--brand-soft);color:var(--brand)}
+.ic-live{background:var(--live-soft);color:var(--live)}
+.ic-hiring{background:var(--hiring-soft);color:var(--hiring)}
+.ic-expand{background:var(--expand-soft);color:var(--expand)}
+.ic-amber{background:var(--accent-soft);color:var(--accent)}
+.ic-ink{background:#EAECF2;color:var(--ink)}
+
+/* ---------- coming-next feature ---------- */
+.pipe{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-lg);
+  overflow:hidden;box-shadow:var(--shadow-sm)}
+.pipe .ph{padding:16px 16px 14px;display:flex;align-items:center;gap:13px;
+  border-bottom:1px solid var(--line-2)}
+.pipe .ph .n{font-family:var(--disp);font-weight:600;font-size:30px;letter-spacing:-1px;
+  font-variant-numeric:tabular-nums;line-height:1}
+.pipe .ph .t{font-size:13px;color:var(--muted);font-weight:500;line-height:1.35}
+.pipe .ph .t b{color:var(--ink);font-weight:600}
+.pipe .ph .badge{margin-left:auto}
+.signal{padding:14px 16px;display:flex;align-items:flex-start;gap:12px}
+.signal+.signal{border-top:1px solid var(--line-2)}
+.signal .av{width:42px;height:42px;border-radius:12px;flex:0 0 auto;display:grid;
+  place-items:center;font-family:var(--disp);font-weight:600;font-size:15px;color:#fff}
+.signal .mid{flex:1;min-width:0}
+.signal .nm{font-weight:600;font-size:14.5px;letter-spacing:-.2px}
+.signal .de{font-size:12.5px;color:var(--muted);margin-top:2px;line-height:1.4}
+.signal .foot{margin-top:8px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.signal .ch{display:inline-flex;align-items:center;gap:4px;font-size:10.5px;
+  color:var(--accent);font-weight:600}
+.signal .ch svg{width:11px;height:11px}
+
+.tag{display:inline-flex;align-items:center;gap:5px;border-radius:999px;
+  padding:4px 9px;font-size:11px;font-weight:600}
+.tag .d{width:6px;height:6px;border-radius:50%}
+.tag-live{background:var(--live-soft);color:#0B7B4B}
+.tag-live .d{background:var(--live)}
+.tag-hiring{background:var(--hiring-soft);color:#1A5FD0}
+.tag-hiring .d{background:var(--hiring)}
+.tag-expand{background:var(--expand-soft);color:#6B3FC4}
+.tag-expand .d{background:var(--expand)}
+.tag-announce{background:var(--announce-soft);color:#9A6200}
+.tag-announce .d{background:var(--announce)}
+
+/* ---------- city ledger ---------- */
+.ledger{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-md);
+  overflow:hidden}
+.lrow{display:flex;align-items:center;gap:13px;padding:14px 16px}
+.lrow+.lrow{border-top:1px solid var(--line-2)}
+.lrow:active{background:var(--surface-2)}
+.lrow .rank{font-family:var(--disp);font-weight:600;font-size:13px;color:var(--faint);
+  width:16px;font-variant-numeric:tabular-nums}
+.lrow .cnm{font-weight:600;font-size:14.5px;letter-spacing:-.2px}
+.lrow .cde{font-size:12px;color:var(--muted);margin-top:1px}
+.lrow .rt{margin-left:auto;text-align:right}
+.lrow .rt .v{font-family:var(--disp);font-weight:600;font-size:19px;letter-spacing:-.5px;
+  font-variant-numeric:tabular-nums}
+.lrow .rt .v .plus{color:var(--accent);font-size:14px}
+.lrow .rt .s{font-size:10.5px;color:var(--faint);font-weight:500;margin-top:1px}
+.lrow .chev{color:var(--faint);flex:0 0 auto}
+
+/* ---------- trust strip ---------- */
+.trust{margin:22px 18px 8px;background:linear-gradient(135deg,#1E2060,#2E3192);
+  border-radius:var(--r-lg);padding:20px;color:#fff;position:relative;overflow:hidden}
+.trust .shield{position:absolute;right:-18px;top:-14px;opacity:.14}
+.trust .shield svg{width:130px;height:130px}
+.trust h3{font-family:var(--disp);font-weight:600;font-size:18px;letter-spacing:-.4px}
+.trust p{font-size:13px;color:#C9CBEF;margin-top:7px;line-height:1.5;max-width:85%}
+.trust .cta{margin-top:14px;display:inline-flex;align-items:center;gap:7px;
+  background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.22);
+  color:#fff;font-weight:600;font-size:13px;padding:10px 15px;border-radius:12px}
+.trust .cta svg{width:15px;height:15px}
+
+/* ---------- search screen ---------- */
+.searchhead{background:var(--surface);border-bottom:1px solid var(--line-2);
+  padding:4px 16px 14px;display:flex;align-items:center;gap:10px}
+.searchhead .inp{flex:1;display:flex;align-items:center;gap:10px;background:var(--surface-2);
+  border:1.5px solid var(--brand-soft);border-radius:14px;padding:11px 14px}
+.searchhead input{border:none;background:none;outline:none;flex:1;font-size:15px;
+  font-family:var(--sans);color:var(--ink);font-weight:450}
+.searchhead input::placeholder{color:var(--faint)}
+.searchhead .clr{color:var(--faint)}
+.chips{display:flex;gap:8px;flex-wrap:wrap}
+.chip{background:var(--surface);border:1px solid var(--line);border-radius:999px;
+  padding:9px 14px;font-size:13px;font-weight:600;color:var(--ink)}
+.chip:active{background:var(--surface-2)}
+.subtle{font-size:12px;font-weight:600;color:var(--faint);
+  margin:2px 0 11px;letter-spacing:.2px}
+.resgroup+.resgroup{margin-top:20px}
+.res{display:flex;align-items:center;gap:13px;background:var(--surface);
+  border:1px solid var(--line);border-radius:14px;padding:12px 14px}
+.res+.res{margin-top:9px}
+.res:active{background:var(--surface-2)}
+.res .av{width:40px;height:40px;border-radius:11px;flex:0 0 auto;display:grid;
+  place-items:center;font-family:var(--disp);font-weight:600;font-size:14px;color:#fff}
+.res .av.soft{background:var(--surface-2)!important;color:var(--brand)}
+.res .nm{font-weight:600;font-size:14.5px;letter-spacing:-.2px}
+.res .de{font-size:12px;color:var(--muted);margin-top:2px}
+.res .chev{margin-left:auto;color:var(--faint)}
+.empty{text-align:center;color:var(--muted);padding:50px 30px}
+.empty .big{font-family:var(--disp);font-weight:600;font-size:17px;color:var(--ink);
+  margin-bottom:6px}
+.empty p{font-size:13.5px;line-height:1.5}
+
+/* ---------- placeholder (modules not yet built) ---------- */
+.ph-screen{display:flex;flex-direction:column;align-items:center;justify-content:center;
+  text-align:center;height:100%;padding:40px 36px}
+.ph-screen .big-ic{width:74px;height:74px;border-radius:20px;display:grid;place-items:center;
+  margin-bottom:20px}
+.ph-screen .big-ic svg{width:36px;height:36px}
+.ph-screen h2{font-family:var(--disp);font-weight:600;font-size:23px;letter-spacing:-.5px}
+.ph-screen .roadtag{margin-top:12px;display:inline-flex;align-items:center;gap:7px;
+  background:var(--accent-soft);color:#9A6200;border:1px solid #F2DCA6;
+  border-radius:999px;padding:6px 13px;font-size:12px;font-weight:600}
+.ph-screen p{font-size:14px;color:var(--muted);line-height:1.55;margin-top:16px;max-width:300px}
+.ph-list{margin-top:20px;width:100%;max-width:320px;display:flex;flex-direction:column;gap:9px}
+.ph-list .it{display:flex;align-items:center;gap:11px;background:var(--surface);
+  border:1px solid var(--line);border-radius:13px;padding:13px 15px;text-align:left}
+.ph-list .it .d{width:8px;height:8px;border-radius:50%;background:var(--brand);flex:0 0 auto}
+.ph-list .it span{font-size:13.5px;font-weight:500;color:var(--ink)}
+
+/* ---------- bottom sheet ---------- */
+.scrim{position:absolute;inset:0;background:rgba(15,16,30,.44);opacity:0;
+  pointer-events:none;transition:opacity .22s ease;z-index:40}
+.scrim.on{opacity:1;pointer-events:auto}
+.sheet{position:absolute;left:0;right:0;bottom:0;background:var(--surface);
+  border-radius:26px 26px 0 0;z-index:50;transform:translateY(102%);
+  transition:transform .3s cubic-bezier(.32,.72,0,1);
+  padding:10px 20px calc(env(safe-area-inset-bottom,0px) + 22px);max-height:84%;
+  overflow-y:auto;box-shadow:0 -12px 40px -12px rgba(15,16,30,.4)}
+.sheet.on{transform:translateY(0)}
+.sheet .grab{width:38px;height:4.5px;border-radius:999px;background:var(--line);
+  margin:6px auto 14px}
+.sheet h3{font-family:var(--disp);font-weight:600;font-size:19px;letter-spacing:-.4px;
+  display:flex;align-items:center;gap:9px}
+.sheet h3 .vb{width:26px;height:26px;border-radius:8px;background:var(--accent-soft);
+  color:var(--accent);display:grid;place-items:center}
+.sheet h3 .vb svg{width:15px;height:15px}
+.srcmeta{margin-top:16px;border:1px solid var(--line);border-radius:14px;overflow:hidden}
+.srcmeta .m{display:flex;justify-content:space-between;align-items:center;gap:16px;
+  padding:13px 15px;font-size:13.5px}
+.srcmeta .m+.m{border-top:1px solid var(--line-2)}
+.srcmeta .m .k{color:var(--muted);font-weight:500}
+.srcmeta .m .v{font-weight:600;text-align:right}
+.srcmeta .m .v.ok{color:#0B7B4B}
+.sheet .note{font-size:13px;color:var(--muted);line-height:1.55;margin-top:14px}
+.sheet .link{margin-top:16px;width:100%;display:flex;align-items:center;justify-content:center;
+  gap:8px;background:var(--brand);color:#fff;font-weight:600;font-size:14px;
+  padding:14px;border-radius:14px}
+.sheet .link svg{width:15px;height:15px}
+.sheet .foot-note{margin-top:12px;font-size:11.5px;color:var(--faint);text-align:center;
+  line-height:1.5}
+
+/* ---------- toast ---------- */
+.toast{position:absolute;left:50%;bottom:88px;transform:translate(-50%,16px);
+  background:var(--ink);color:#fff;font-size:13px;font-weight:500;padding:12px 18px;
+  border-radius:13px;opacity:0;pointer-events:none;transition:all .25s ease;z-index:60;
+  box-shadow:var(--shadow-md);max-width:84%;text-align:center}
+.toast.on{opacity:1;transform:translate(-50%,0)}
+
+.fadein{animation:fade .34s ease both}
+@keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+
+/* ===== Part 2: directory ===== */
+.iconbtn{width:38px;height:38px;border-radius:11px;display:grid;place-items:center;background:var(--surface-2);color:var(--ink);position:relative}
+.iconbtn:active{background:var(--line)}
+.iconbtn.on{background:var(--brand-soft);color:var(--brand)}
+.iconbtn svg{width:19px;height:19px}
+.fdot{position:absolute;top:7px;right:7px;width:7px;height:7px;border-radius:50%;background:var(--accent-bright);border:1.5px solid #fff}
+.dir-controls{background:var(--surface);border-bottom:1px solid var(--line-2);padding:12px 0}
+.qrow{display:flex;gap:8px;overflow-x:auto;padding:0 18px 2px;scrollbar-width:none}
+.qrow::-webkit-scrollbar{height:0}
+.qchip{flex:0 0 auto;background:var(--surface-2);border:1px solid var(--line);border-radius:999px;padding:8px 15px;font-size:13px;font-weight:600;color:var(--muted)}
+.qchip.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+.countrow{display:flex;align-items:center;justify-content:space-between;padding:12px 18px 0;gap:10px}
+.countrow .cnt{font-size:12.5px;color:var(--muted)}
+.countrow .cnt b{color:var(--ink);font-family:var(--disp);font-weight:600}
+.sortbtn{display:flex;align-items:center;gap:6px;font-size:13px;font-weight:600;color:var(--brand);background:var(--brand-soft);padding:7px 12px;border-radius:10px;flex:0 0 auto}
+.sortbtn svg{width:15px;height:15px}
+.gcard{display:flex;align-items:center;gap:13px;background:var(--surface);border:1px solid var(--line);border-radius:15px;padding:13px 14px;width:100%;text-align:left}
+.gcard+.gcard{margin-top:10px}
+.gcard:active{background:var(--surface-2)}
+.gav{width:46px;height:46px;border-radius:13px;flex:0 0 auto;display:grid;place-items:center;font-family:var(--disp);font-weight:600;font-size:15px;color:#fff}
+.gmid{flex:1;min-width:0}
+.gnm{font-weight:600;font-size:15px;letter-spacing:-.2px;display:flex;align-items:center;gap:6px}
+.vchk{display:inline-flex;color:var(--live);flex:0 0 auto}
+.vchk svg{width:14px;height:14px}
+.gde{font-size:12.5px;color:var(--muted);margin-top:2px}
+.metarow{display:flex;gap:12px;margin-top:9px;flex-wrap:wrap}
+.metarow .m{display:inline-flex;align-items:center;gap:4px;font-size:11.5px;color:var(--muted);font-weight:500}
+.metarow .m svg{width:13px;height:13px;color:var(--faint)}
+.metarow .m.hot{color:var(--accent)}
+.metarow .m.hot svg{color:var(--accent)}
+.gcard .chev{color:var(--faint);flex:0 0 auto}
+
+/* ===== Part 2: company detail ===== */
+.src{display:inline-flex;align-items:center;gap:4px;font-size:10.5px;color:var(--accent);font-weight:600}
+.src svg{width:11px;height:11px}
+.cdetail{padding-bottom:8px}
+.chead{padding:18px 18px 4px;display:flex;flex-direction:column;align-items:flex-start}
+.cav{width:60px;height:60px;border-radius:17px;display:grid;place-items:center;font-family:var(--disp);font-weight:600;font-size:21px;color:#fff;margin-bottom:13px}
+.cnm{font-family:var(--disp);font-weight:600;font-size:23px;letter-spacing:-.5px;display:flex;align-items:center;gap:8px}
+.cnm .vchk svg{width:18px;height:18px}
+.cmeta{font-size:13px;color:var(--muted);margin-top:5px;font-weight:500}
+.cstats{margin:16px 18px 0}
+.ftags{display:flex;gap:8px;flex-wrap:wrap}
+.ftag{background:var(--brand-soft);color:var(--brand);border-radius:9px;padding:7px 12px;font-size:12.5px;font-weight:600}
+.urow{display:flex;align-items:center;gap:13px;padding:14px 16px}
+.urow+.urow{border-top:1px solid var(--line-2)}
+.uav{width:38px;height:38px;border-radius:11px;background:var(--surface-2);color:var(--brand);display:grid;place-items:center;flex:0 0 auto}
+.uav svg{width:18px;height:18px}
+.unm{font-weight:600;font-size:14px}
+.ufocus{font-size:12px;color:var(--muted);margin-top:1px}
+.utag{margin-left:auto;font-size:10.5px;font-weight:600;color:var(--brand);background:var(--brand-soft);padding:4px 9px;border-radius:999px;flex:0 0 auto}
+.hire{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-md);overflow:hidden}
+.hire .hh{padding:15px 16px;display:flex;align-items:center;gap:12px;border-bottom:1px solid var(--line-2)}
+.hire .hh .n{font-family:var(--disp);font-weight:600;font-size:26px;letter-spacing:-.6px;font-variant-numeric:tabular-nums}
+.hire .hh .t{font-size:13px;color:var(--muted);font-weight:500;line-height:1.35}
+.hire .hh .t b{color:var(--ink)}
+.hrole{padding:12px 16px;display:flex;align-items:center;gap:10px;font-size:13.5px}
+.hrole+.hrole{border-top:1px solid var(--line-2)}
+.hrole .rt{font-weight:500}
+.hrole .rc{margin-left:auto;font-size:12px;color:var(--muted)}
+.hrole .dot{width:6px;height:6px;border-radius:50%;background:var(--live);flex:0 0 auto}
+.lead{display:flex;align-items:center;gap:12px;padding:13px 16px}
+.lead+.lead{border-top:1px solid var(--line-2)}
+.lav{width:40px;height:40px;border-radius:50%;background:var(--surface-2);color:var(--muted);display:grid;place-items:center;font-family:var(--disp);font-weight:600;font-size:13px;flex:0 0 auto}
+.lrole{font-size:12px;color:var(--muted)}
+.lname{font-weight:600;font-size:14px;margin-top:1px}
+.srcpanel{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-md);overflow:hidden}
+.sprow{display:flex;align-items:center;gap:12px;padding:13px 15px;width:100%;text-align:left}
+.sprow+.sprow{border-top:1px solid var(--line-2)}
+.sprow:active{background:var(--surface-2)}
+.sprow .sl{flex:1;min-width:0}
+.sprow .sl .k{font-weight:600;font-size:13.5px}
+.sprow .sl .s{font-size:12px;color:var(--muted);margin-top:2px;display:flex;align-items:center;gap:5px}
+.sprow .sl .s svg{width:12px;height:12px;color:var(--faint)}
+.tag-neutral{background:var(--surface-2);color:var(--muted)}
+.tag-neutral .d{background:var(--faint)}
+.cfoot{padding:16px 18px 20px;color:var(--faint);font-size:12px;text-align:center;line-height:1.5}
+.cta-ghost{margin:6px 18px 0;width:calc(100% - 36px);display:flex;align-items:center;justify-content:center;gap:8px;background:var(--brand);color:#fff;font-weight:600;font-size:14.5px;padding:15px;border-radius:14px}
+.cta-ghost:active{background:var(--brand-2)}
+.cta-ghost svg{width:17px;height:17px}
+
+/* ===== Part 2: filter sheet ===== */
+.fhead{display:flex;align-items:center;justify-content:space-between;margin-bottom:2px}
+.fhead h3{font-family:var(--disp);font-weight:600;font-size:20px;letter-spacing:-.4px}
+.freset{font-size:13px;font-weight:600;color:var(--brand)}
+.fsec{margin-top:18px}
+.fsec-t{font-size:13px;font-weight:600;color:var(--muted);margin-bottom:10px}
+.fchips{display:flex;gap:8px;flex-wrap:wrap}
+.fchip{background:var(--surface-2);border:1.5px solid var(--line);border-radius:999px;padding:9px 14px;font-size:13px;font-weight:600;color:var(--ink)}
+.fchip.on{background:var(--brand);color:#fff;border-color:var(--brand)}
+.fapply{margin-top:22px;width:100%;background:var(--brand);color:#fff;font-weight:600;font-size:15px;padding:15px;border-radius:14px;font-family:var(--sans)}
+.fapply:active{background:var(--brand-2)}
+
+/* ===== Part 3: pipeline ===== */
+.tag-brand{background:var(--brand-soft);color:var(--brand)}
+.tag-brand .d{background:var(--brand)}
+.tag-teal{background:var(--teal-soft);color:#0A7980}
+.tag-teal .d{background:var(--teal)}
+.ic-teal{background:var(--teal-soft);color:var(--teal)}
+.signal{cursor:pointer}
+.pipe-head{background:var(--surface);border-bottom:1px solid var(--line-2);padding:16px 0 12px}
+.ph2{display:flex;align-items:center;gap:13px;padding:0 18px}
+.ph2 .n{font-family:var(--disp);font-weight:600;font-size:34px;letter-spacing:-1.2px;font-variant-numeric:tabular-nums;line-height:1}
+.ph2 .t{font-size:13px;color:var(--muted);font-weight:500;line-height:1.35}
+.ph2 .t b{color:var(--ink)}
+.ph2 .tag{margin-left:auto}
+.disc{display:flex;gap:7px;align-items:flex-start;margin:13px 18px 0;padding:10px 12px;background:var(--accent-soft);
+  border:1px solid #F2DCA6;border-radius:11px;font-size:11.5px;color:#8a6200;line-height:1.4;font-weight:500}
+.disc svg{width:14px;height:14px;flex:0 0 auto;margin-top:1px;color:#b4781a}
+.stagerow{margin-top:14px}
+.feed{padding:6px 18px 20px}
+.tlgroup-h{font-size:12px;font-weight:600;color:var(--faint);margin:16px 0 6px 2px;letter-spacing:.2px}
+.tl{position:relative;margin-left:2px}
+.tl::before{content:"";position:absolute;left:6px;top:14px;bottom:14px;width:2px;background:var(--line)}
+.tlitem{position:relative;padding-left:26px;padding-top:9px;cursor:pointer}
+.tlnode{position:absolute;left:1px;top:22px;width:12px;height:12px;border-radius:50%;border:2.5px solid var(--surface);z-index:1;box-shadow:0 0 0 1px var(--line)}
+.scard{background:var(--surface);border:1px solid var(--line);border-radius:15px;padding:13px 14px;box-shadow:var(--shadow-sm)}
+.tlitem:active .scard{background:var(--surface-2)}
+.sc-top{display:flex;align-items:center;gap:9px}
+.sc-av{width:28px;height:28px;border-radius:8px;flex:0 0 auto;display:grid;place-items:center;font-family:var(--disp);font-weight:600;font-size:11px;color:#fff}
+.sc-nm{font-weight:600;font-size:13.5px;letter-spacing:-.1px}
+.sc-date{margin-left:auto;font-size:11.5px;color:var(--faint);font-weight:500;flex:0 0 auto}
+.sc-head{font-weight:600;font-size:15px;letter-spacing:-.2px;margin-top:9px;line-height:1.3}
+.sc-de{font-size:12.5px;color:var(--muted);margin-top:3px;line-height:1.4}
+.sc-foot{display:flex;align-items:center;gap:9px;margin-top:11px;flex-wrap:wrap}
+.vchk.sm{display:inline-flex;align-items:center;gap:4px;font-size:11px;color:#0B7B4B;font-weight:600}
+.vchk.sm svg{width:12px;height:12px}
+.ev{display:inline-flex;align-items:center;gap:4px;font-size:11px;color:var(--faint);font-weight:500;margin-left:auto}
+.ev svg{width:12px;height:12px}
+
+/* ===== Part 3: signal detail ===== */
+.sg-head{padding:18px 18px 2px}
+.sg-top{display:flex;align-items:center;gap:11px}
+.sg-av{width:46px;height:46px;border-radius:13px;flex:0 0 auto;display:grid;place-items:center;font-family:var(--disp);font-weight:600;font-size:15px;color:#fff}
+.sg-nm{font-weight:600;font-size:16px;letter-spacing:-.2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sg-meta{font-size:12.5px;color:var(--muted);margin-top:2px}
+.sg-stage{display:flex;align-items:center;gap:9px;margin-top:14px;flex-wrap:wrap}
+.vbadge{display:inline-flex;align-items:center;gap:6px;background:var(--live-soft);color:#0B7B4B;border-radius:999px;padding:6px 11px;font-size:11.5px;font-weight:600}
+.vbadge svg{width:13px;height:13px}
+.vbadge.amber{background:var(--accent-soft);color:#9A6200}
+.sg-headline{font-family:var(--disp);font-weight:600;font-size:21px;letter-spacing:-.5px;line-height:1.2;margin-top:14px}
+.sg-metapill{display:inline-flex;align-items:center;gap:7px;margin-top:12px;background:var(--surface-2);border:1px solid var(--line);
+  border-radius:11px;padding:9px 13px;font-size:12.5px;color:var(--ink);font-weight:500}
+.sg-metapill svg{width:14px;height:14px;color:var(--brand);flex:0 0 auto}
+.etrail{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-md);overflow:hidden}
+.erow{display:flex;align-items:flex-start;gap:12px;padding:14px 15px;width:100%;text-align:left}
+.erow+.erow{border-top:1px solid var(--line-2)}
+.erow:active{background:var(--surface-2)}
+.eic{width:36px;height:36px;border-radius:10px;flex:0 0 auto;display:grid;place-items:center}
+.eic svg{width:17px;height:17px}
+.emid{flex:1;min-width:0}
+.el{font-weight:600;font-size:13.5px}
+.ed{color:var(--faint);font-weight:500;font-size:12px}
+.et{font-size:12.5px;color:var(--muted);margin-top:3px;line-height:1.45}
+.erow .tag{flex:0 0 auto;margin-top:2px}
+.relcard{display:flex;align-items:center;gap:13px;background:var(--surface);border:1px solid var(--line);border-radius:15px;padding:13px 14px;width:100%;text-align:left}
+.relcard:active{background:var(--surface-2)}
+.relcard .chev{color:var(--faint);flex:0 0 auto}
+.relnone{display:flex;gap:9px;align-items:flex-start;background:var(--surface-2);border:1px dashed var(--line);border-radius:14px;padding:14px 15px;font-size:13px;color:var(--muted);line-height:1.45}
+.relnone svg{width:16px;height:16px;flex:0 0 auto;margin-top:1px;color:var(--faint)}
+.whocard{display:flex;gap:11px;align-items:flex-start;background:var(--brand-soft);border-radius:14px;padding:15px;font-size:13px;color:#2B2E70;line-height:1.5;font-weight:500}
+.whocard svg{width:18px;height:18px;flex:0 0 auto;margin-top:1px;color:var(--brand)}
+
+/* ===== Part 4: locations ===== */
+.seg{display:flex;background:var(--surface-2);border:1px solid var(--line);border-radius:12px;padding:4px;gap:4px}
+.segbtn{flex:1;padding:10px;border-radius:9px;font-size:13.5px;font-weight:600;color:var(--muted)}
+.segbtn.on{background:var(--surface);color:var(--brand);box-shadow:var(--shadow-sm)}
+.loc-head{background:var(--surface);border-bottom:1px solid var(--line-2);padding:12px 18px 14px}
+.loc-row{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.cmpbtn{display:flex;align-items:center;gap:6px;background:var(--brand-soft);color:var(--brand);font-weight:600;font-size:13px;padding:8px 13px;border-radius:10px;flex:0 0 auto}
+.cmpbtn svg{width:15px;height:15px}
+.aggcard{display:flex;align-items:center;gap:13px;background:var(--surface);border:1px solid var(--line);border-radius:var(--r-lg);padding:16px;box-shadow:var(--shadow-sm)}
+.aggcard .n{font-family:var(--disp);font-weight:600;font-size:32px;letter-spacing:-1px;line-height:1;font-variant-numeric:tabular-nums}
+.aggcard .t{font-size:13px;color:var(--muted);line-height:1.35}
+.aggcard .t b{color:var(--ink)}
+.aggcard .tag{margin-left:auto;flex:0 0 auto}
+.citystat{margin:14px 18px 0}
+.sectors{display:flex;flex-direction:column;gap:13px}
+.sbt{display:flex;justify-content:space-between;font-size:13px;font-weight:600;margin-bottom:6px}
+.sbt span:last-child{color:var(--muted);font-family:var(--disp);font-variant-numeric:tabular-nums}
+.sbtrack{height:8px;background:var(--line-2);border-radius:999px;overflow:hidden}
+.sbfill{height:100%;border-radius:999px}
+.salbox{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-md);overflow:hidden}
+.salrow{display:flex;justify-content:space-between;align-items:center;padding:13px 15px;font-size:13.5px}
+.salrow+.salrow{border-top:1px solid var(--line-2)}
+.srole{font-weight:500}
+.sval{font-family:var(--disp);font-weight:600;font-variant-numeric:tabular-nums}
+.cchips{display:flex;gap:8px;flex-wrap:wrap}
+.cchip{display:inline-flex;align-items:center;gap:5px;background:var(--surface);border:1px solid var(--line);border-radius:999px;padding:8px 13px;font-size:12.5px;font-weight:500;color:var(--ink)}
+.cchip svg{width:13px;height:13px;color:var(--brand)}
+.schemecard{display:block;width:100%;text-align:left;background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:15px;margin-bottom:11px}
+.schemecard:active{background:var(--surface-2)}
+.sch-top{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.sch-nm{font-family:var(--disp);font-weight:600;font-size:17px;letter-spacing:-.3px}
+.sch-pol{font-size:12px;color:var(--muted);margin-top:3px}
+.sch-head{font-size:13.5px;color:var(--ink);margin-top:9px;line-height:1.4}
+.sch-foot{display:flex;align-items:center;justify-content:space-between;margin-top:12px}
+.sch-stat{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:600;color:var(--brand)}
+.sch-stat svg{width:14px;height:14px}
+.inclist{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-md);overflow:hidden}
+.incrow{display:flex;justify-content:space-between;align-items:center;gap:14px;padding:13px 15px;font-size:13.5px}
+.incrow+.incrow{border-top:1px solid var(--line-2)}
+.ik{color:var(--muted);font-weight:500}
+.iv{font-weight:600;text-align:right}
+/* compare */
+.cmp{padding:0 0 10px}
+.cmp-head{position:sticky;top:0;background:var(--surface);border-bottom:1px solid var(--line);display:grid;grid-template-columns:0.85fr 1fr 1fr;z-index:2}
+.cmp-col-h{padding:15px 12px;text-align:left;border-left:1px solid var(--line-2)}
+.cmp-city{font-family:var(--disp);font-weight:600;font-size:15px;letter-spacing:-.3px}
+.cmp-sub{font-size:11.5px;color:var(--muted);margin-top:2px;display:flex;align-items:center;gap:3px}
+.cmp-sub svg{width:13px;height:13px}
+.crow{display:grid;grid-template-columns:0.85fr 1fr 1fr;border-bottom:1px solid var(--line-2)}
+.crow .cl{padding:13px 12px;font-size:12px;color:var(--muted);font-weight:600;background:var(--surface-2);display:flex;align-items:center}
+.crow .cv{padding:13px 12px;font-size:13px;font-weight:600;border-left:1px solid var(--line-2);font-variant-numeric:tabular-nums}
+/* pick list */
+.pick-list{margin-top:14px;display:flex;flex-direction:column;gap:2px;max-height:56vh;overflow:auto}
+.pickrow{display:flex;justify-content:space-between;align-items:center;padding:14px 6px;border-bottom:1px solid var(--line-2);font-size:14.5px;font-weight:600;text-align:left}
+.pm{font-size:12px;color:var(--muted);font-weight:500}
+/* scheme compare table */
+.ctab-wrap{margin-top:12px;overflow-x:auto;border:1px solid var(--line);border-radius:var(--r-md)}
+.ctab{width:100%;border-collapse:collapse;font-size:12.5px;min-width:440px}
+.ctab th{background:var(--surface-2);text-align:left;padding:11px 12px;font-weight:600;color:var(--muted);border-bottom:1px solid var(--line);white-space:nowrap}
+.ctab td{padding:11px 12px;border-bottom:1px solid var(--line-2);white-space:nowrap}
+.ctab td.st{font-weight:600}
+.ctab tbody tr:last-child td{border-bottom:none}
+
+/* ===== Part 5: ecosystem ===== */
+.m.rate{color:var(--ink)}
+.m.rate svg{color:var(--accent-bright)!important}
+.verify-link{display:flex;align-items:center;gap:9px;width:100%;background:var(--brand-soft);border-radius:13px;padding:13px 15px;margin-top:14px;color:var(--brand);font-weight:600;font-size:13.5px;text-align:left}
+.verify-link svg{width:17px;height:17px;flex:0 0 auto}
+.verify-link span{flex:1}
+.tr-badges{display:flex;flex-direction:column;gap:9px}
+.tr-badge{display:flex;align-items:center;gap:9px;background:var(--live-soft);color:#0B7B4B;border-radius:11px;padding:11px 13px;font-size:13px;font-weight:600}
+.tr-badge svg{width:16px;height:16px;flex:0 0 auto}
+.revbox{display:flex;flex-direction:column;gap:11px}
+.rev{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:14px 15px}
+.rev-top{display:flex;align-items:center;gap:10px}
+.stars{display:inline-flex;gap:1px}
+.stars .st{color:var(--line);display:inline-flex}
+.stars .st.on{color:var(--accent-bright)}
+.stars .st svg{width:14px;height:14px}
+.rev-role{font-size:12px;color:var(--muted);font-weight:600}
+.rev-t{font-size:13px;color:var(--ink);margin-top:9px;line-height:1.5}
+/* talent */
+.tgrid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.tcell{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-md);padding:15px}
+.tcell .tv{font-family:var(--disp);font-weight:600;font-size:26px;letter-spacing:-.8px;font-variant-numeric:tabular-nums}
+.tcell .tl{font-size:12px;color:var(--muted);margin-top:3px;line-height:1.3}
+.tcell .src{margin-top:9px}
+.salcitybox{display:flex;flex-direction:column;gap:14px}
+.salcity{}
+.scrow{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:7px}
+.scn{font-weight:600;font-size:13.5px}
+.scv{font-family:var(--disp);font-weight:600;font-size:13px;font-variant-numeric:tabular-nums;color:var(--ink)}
+.skbox{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-md);overflow:hidden}
+.skrow{display:flex;justify-content:space-between;align-items:center;padding:13px 15px;font-size:13.5px}
+.skrow+.skrow{border-top:1px solid var(--line-2)}
+.skn{font-weight:500}
+.sktag{font-size:11.5px;font-weight:600;color:var(--muted);background:var(--surface-2);padding:4px 10px;border-radius:999px}
+.sktag.hot{color:var(--accent);background:var(--accent-soft)}
+/* trust */
+.trusthero{background:linear-gradient(135deg,#1E2060,#2E3192);color:#fff;padding:26px 20px 24px;text-align:center}
+.trusthero .th-ic{width:56px;height:56px;margin:0 auto 14px;color:#fff}
+.trusthero .th-ic svg{width:56px;height:56px}
+.trusthero h2{font-family:var(--disp);font-weight:600;font-size:22px;letter-spacing:-.4px;color:#fff;border:none}
+.trusthero p{font-size:13.5px;color:#C9CBEF;margin-top:10px;line-height:1.55}
+.tierbox{display:flex;flex-direction:column;gap:11px}
+.tierrow{display:flex;gap:12px;align-items:flex-start;background:var(--surface);border:1px solid var(--line);border-radius:13px;padding:13px 14px}
+.tierrow .tag{flex:0 0 auto}
+.tierdef{font-size:12.5px;color:var(--muted);line-height:1.45}
+.sprow svg.chev,.sprow>svg{flex:0 0 auto;color:var(--faint)}
+</style>
+</head>
+<body>
+<div class="device">
+  <div class="app" id="app">
+    <div class="statusbar">
+      <span id="clock">9:41</span>
+      <span class="dots" aria-hidden="true">
+        <svg width="18" height="12" viewBox="0 0 18 12" fill="none"><rect x="0" y="7" width="3" height="5" rx="1" fill="#15172A"/><rect x="5" y="4.5" width="3" height="7.5" rx="1" fill="#15172A"/><rect x="10" y="2" width="3" height="10" rx="1" fill="#15172A"/><rect x="15" y="0" width="3" height="12" rx="1" fill="#15172A" opacity="0.3"/></svg>
+        <svg width="17" height="12" viewBox="0 0 17 12" fill="none"><path d="M8.5 2.2c2.3 0 4.4.9 6 2.4l-1.3 1.3a6.9 6.9 0 0 0-9.4 0L2.5 4.6A8.7 8.7 0 0 1 8.5 2.2Z" fill="#15172A"/><path d="M8.5 6.1c1.2 0 2.3.5 3.1 1.3L8.5 10.5 5.4 7.4A4.4 4.4 0 0 1 8.5 6.1Z" fill="#15172A"/></svg>
+        <svg width="26" height="13" viewBox="0 0 26 13" fill="none"><rect x="1" y="1" width="21" height="11" rx="3.2" stroke="#15172A" stroke-opacity="0.4" stroke-width="1.2"/><rect x="2.6" y="2.6" width="16" height="7.8" rx="2" fill="#15172A"/><rect x="23.3" y="4.2" width="1.8" height="4.6" rx="0.9" fill="#15172A" fill-opacity="0.4"/></svg>
+      </span>
+    </div>
+    <div id="appbar"></div>
+    <div class="content" id="screen"></div>
+    <div id="nav"></div>
+    <div class="scrim" id="scrim"></div>
+    <div class="sheet" id="sheet"></div>
+    <div class="toast" id="toast"></div>
+  </div>
+</div>
+
+<script>
+/* ======================= ICONS ======================= */
+const I = {
+  search:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7.5"/><path d="M21 21l-4.3-4.3"/></svg>',
+  explore:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><circle cx="12" cy="12" r="9.2"/><path d="M15.6 8.4l-2 5.2-5.2 2 2-5.2z" fill="currentColor" stroke="none"/></svg>',
+  building:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M4 21V5.5A1.5 1.5 0 0 1 5.5 4h7A1.5 1.5 0 0 1 14 5.5V21"/><path d="M14 10h4.5A1.5 1.5 0 0 1 20 11.5V21"/><path d="M2.5 21h19"/><path d="M7 8h3M7 12h3M7 16h3M17 14h0M17 17.5h0"/></svg>',
+  signal:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17l5-5 3.5 3.5L20 7"/><path d="M15 7h5v5"/></svg>',
+  pin:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M12 21s7-6.3 7-11a7 7 0 1 0-14 0c0 4.7 7 11 7 11Z"/><circle cx="12" cy="10" r="2.6"/></svg>',
+  grid:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><rect x="3.5" y="3.5" width="7" height="7" rx="2"/><rect x="13.5" y="3.5" width="7" height="7" rx="2"/><rect x="3.5" y="13.5" width="7" height="7" rx="2"/><rect x="13.5" y="13.5" width="7" height="7" rx="2"/></svg>',
+  shield:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M12 3l7 2.5v5.5c0 4.5-3 8-7 9.5-4-1.5-7-5-7-9.5V5.5z"/><path d="M9 12l2 2 4-4.2"/></svg>',
+  shieldFill:'<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.5 20 5.3v6c0 5-3.3 8.8-8 10.4-4.7-1.6-8-5.4-8-10.4v-6z" opacity="1"/><path d="M9 11.8l2 2 4-4.2" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+  info:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 11v5"/><circle cx="12" cy="7.6" r="1" fill="currentColor" stroke="none"/></svg>',
+  chev:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18"><path d="M9 6l6 6-6 6"/></svg>',
+  chevSm:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><path d="M9 6l6 6-6 6"/></svg>',
+  back:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" width="20" height="20"><path d="M15 6l-6 6 6 6"/></svg>',
+  close:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" width="20" height="20"><path d="M6 6l12 12M18 6L6 18"/></svg>',
+  people:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><circle cx="9" cy="8" r="3.2"/><path d="M3.5 20a5.5 5.5 0 0 1 11 0"/><path d="M16 5.2a3.2 3.2 0 0 1 0 5.9"/><path d="M17.5 14.3A5.5 5.5 0 0 1 20.5 19"/></svg>',
+  rupee:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 5h10M7 9h10M15.5 5c0 3-2.4 4-5.5 4H8.5l6 10"/></svg>',
+  doc:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M6 3h8l4 4v14H6z"/><path d="M14 3v4h4"/><path d="M9 13h6M9 17h6"/></svg>',
+  ext:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 5h5v5"/><path d="M19 5l-8 8"/><path d="M18 14v4a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4"/></svg>',
+  spark:'<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l1.8 5.4L19 9.2l-5.2 1.8L12 16l-1.8-5L5 9.2l5.2-1.8z"/></svg>',
+  filter:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 5h18l-7 8.5V20l-4-2v-4.5z"/></svg>',
+  sortIcon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l3-3 3 3M9 6v12M18 15l-3 3-3-3M15 18V6"/></svg>',
+  star:'<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3.5l2.6 5.3 5.9.85-4.25 4.15 1 5.85L12 16.9l-5.25 2.75 1-5.85L3.5 9.65l5.9-.85z"/></svg>',
+};
+
+/* ======================= DATA (real, from the research) ======================= */
+const SRC = {
+  nz26:{name:'NASSCOM–Zinnov',full:'NASSCOM–Zinnov, India GCC Landscape 2026',asof:'May 2026',conf:'Reported',
+    note:'The most-cited industry reference, co-published by the NASSCOM industry body and Zinnov. Figures are aggregate and membership-gated at full depth.',url:'nasscom.in'},
+  nzUnits:{name:'NASSCOM–Zinnov',full:'NASSCOM–Zinnov (unit count)',asof:'Jun 2025',conf:'Reported',
+    note:'Counts individual centres (“units”), not parent companies — one company can run several units across cities.',url:'nasscom.in'},
+  cbre:{name:'CBRE',full:'CBRE India office research',asof:'2025',conf:'Reported',
+    note:'From commercial real-estate leasing data. GCC share of office absorption is derived from lease transactions, not a company registry.',url:'cbre.co.in'},
+  zinnov:{name:'Zinnov',full:'Zinnov, Tier-I city analysis 2025',asof:'2025',conf:'Reported',
+    note:'Zinnov both publishes this data and sells GCC setup advisory, so it is not a neutral third party.',url:'zinnov.com'},
+  vestian:{name:'Vestian',full:'Vestian GCC report',asof:'FY2024',conf:'Reported',
+    note:'A real-estate consultancy; its city counts are among the most conservative and differ from Zinnov’s.',url:'vestian.com'},
+  flexiple:{name:'Flexiple',full:'Flexiple GCC statistics (traceable announcements)',asof:'2025',conf:'Verified count',
+    note:'Only counts new centres that could be traced to a company statement or a named publication — a deliberately conservative, sourced tally.',url:'flexiple.com'},
+  range:{name:'Multiple sources',full:'EY · NASSCOM–Zinnov · GCCPROs · OceanFrogs',asof:'2023–2026',conf:'Range',
+    note:'The spread comes from definition (company vs unit, strict vs broad) and date. EY counted ~1,580; the broadest definitions reach ~2,800.',url:''},
+  mca:{name:'MCA / RoC',full:'Ministry of Corporate Affairs — CIN verified',asof:'Oct 2026',conf:'Verified',
+    note:'Existence and entity details are verified against the official company registry (MCA21) by matching the Corporate Identification Number (CIN). This is the strongest confidence tier.',url:'mca.gov.in'},
+  website:{name:'Company + press',full:'Company website and named press reports',asof:'2025–26',conf:'Reported',
+    note:'Centres and cities are compiled from the company’s own site and named business-press reports, not a single unverified table.',url:''},
+  model:{name:'Atlas estimate',full:'Atlas headcount model',asof:'Oct 2026',conf:'Estimate',
+    note:'Headcount is modelled from hiring signals, office footprint and public disclosures — it is an estimate, not a filed figure, and is flagged as such everywhere it appears.',url:''},
+  jobs:{name:'Job boards',full:'Live job-board and career-page postings',asof:'Updated daily',conf:'Live',
+    note:'Open-role counts are compiled from public job boards and company career pages, deduplicated to the real employer rather than the staffing agency.',url:''},
+  linkedin:{name:'LinkedIn / company',full:'Public professional profiles and company announcements',asof:'2025–26',conf:'Reported',
+    note:'Leadership is sourced from public professional profiles and company announcements. Atlas does not scrape private data.',url:''},
+  press:{name:'Business press',full:'Named business-press report (ET, Mint, and similar)',asof:'2026',conf:'Reported',
+    note:'An announcement reported by a named business publication. Treated as “announced” until the entity or lease is independently confirmed.',url:''},
+  lease:{name:'CRE lease',full:'Commercial real-estate lease signing',asof:'2026',conf:'Reported',
+    note:'Office-lease signings (via CRE sources such as CBRE and Colliers) are a reliable leading indicator of a hiring ramp.',url:''},
+  eor:{name:'EOR / pre-entity',full:'EOR and payroll pre-entity hiring',asof:'2026',conf:'Reported',
+    note:'The earliest detectable signal: a company hiring in India through an employer-of-record before it has set up its own entity.',url:''},
+  comp:{name:'Comp surveys',full:'Compensation surveys (Aon, Mercer) and crowdsourced data',asof:'2026',conf:'Estimate',
+    note:'Salary benchmarks blend published surveys with crowdsourced pay data. Shown as city-adjusted ranges, not precise figures.',url:''},
+  talent:{name:'Talent trackers',full:'Talent availability (NASSCOM, staffing trackers)',asof:'2026',conf:'Reported',
+    note:'Talent pool and attrition draw on industry trackers and staffing data; attrition is a modelled range.',url:''},
+  ka:{name:'Karnataka GCC Policy',full:'Karnataka GCC Policy 2024–29 (official summary)',asof:'2024',conf:'Policy',
+    note:'Summarised from the Karnataka GCC policy. Incentive values are indicative and subject to approval.',url:'bdo.in'},
+  mh:{name:'Maharashtra GCC Policy',full:'Maharashtra GCC Policy 2025',asof:'2025',conf:'Policy',
+    note:'Targets are quoted inconsistently across sources (200 vs 400 GCCs); Atlas shows the reported range rather than pick one.',url:'law.asia'},
+  gj:{name:'Gujarat GCC Policy',full:'Gujarat GCC Policy 2025–30',asof:'2025',conf:'Policy',
+    note:'Summarised from the Gujarat GCC policy; GIFT City/IFSC benefits apply separately.',url:'rsm.global'},
+  up:{name:'Invest UP',full:'Uttar Pradesh GCC Policy 2024',asof:'2024',conf:'Policy',
+    note:'Summarised from the UP GCC policy; tiers and subsidy caps apply per the policy document.',url:'india-briefing.com'},
+  states7:{name:'CBRE',full:'CBRE — seven-state GCC targets',asof:'2025',conf:'Reported',
+    note:'Aggregate state ambitions compiled by CBRE; individual state policies vary in how consolidated their public terms are.',url:'peoplematters.in'},
+  everest:{name:'Everest / Avasant',full:'Everest PEAK Matrix & Avasant RadarView',asof:'2025',conf:'Reported',
+    note:'Independent analyst assessments of GCC service providers. Rigorous but gated — Atlas surfaces the recognition openly.',url:'everestgrp.com'},
+  reviews:{name:'Community reviews',full:'Atlas community reviews',asof:'2026',conf:'Estimate',
+    note:'Reviews are contributed by people who have worked with a provider. In this prototype they are illustrative sample data.',url:''},
+  track:{name:'Track record',full:'Atlas-verified track record',asof:'2026',conf:'Verified',
+    note:'Setup counts are verified via entity records and client confirmation where available — not self-reported marketing claims.',url:''},
+  stpi:{name:'STPI / SOFTEX',full:'Software Technology Parks of India (SOFTEX)',asof:'2026',conf:'Reported',
+    note:'Confirms an entity is an operating IT/ITeS export unit via SOFTEX certification under FEMA.',url:''},
+};
+
+const STATS = {
+  hero:{num:'2,117',unit:'GCCs',sub:'operating in India',src:'nz26',min:1580,max:2800,reported:2117},
+  cells:[
+    {v:'$98.4',u:'B',l:'Market revenue, FY26',src:'nz26'},
+    {v:'2.3',u:'M',l:'Professionals employed',src:'nz26'},
+    {v:'2,975',u:'',l:'Individual GCC units',src:'nzUnits'},
+  ],
+};
+
+const MODULES = [
+  {id:'gccs',icon:'building',cls:'ic-brand',tt:'GCC registry',ts:'Who exists, verified',meta:'2,117 companies',tab:'gccs'},
+  {id:'pipeline',icon:'signal',cls:'ic-live',tt:"Who's coming next",ts:'New & expanding',meta:'48 new in 2025',tab:'pipeline'},
+  {id:'locations',icon:'pin',cls:'ic-hiring',tt:'Cities & schemes',ts:'Compare locations',meta:'6 metros, 18+ tier-2',tab:'locations'},
+  {id:'ecosystem',icon:'grid',cls:'ic-expand',tt:'Providers & talent',ts:'Who actually delivers',meta:'7 categories',tab:'ecosystem'},
+];
+
+const SIGNALS = [
+  {id:'meridian',nm:'Meridian Health',av:'#0E9CA5',sector:'Healthcare',city:'Bengaluru',stage:'announced',tag:'announce',tagl:'Announced',daysAgo:1,dateLabel:'1d ago',
+   headline:'Announced a new GCC in Bengaluru',de:'US health-tech firm signals a planned 500-seat centre.',src:'press',verified:false,relatedId:null,meta:'Planned ~500 seats · health tech & analytics',
+   evidence:[{type:'press',label:'Press report',text:'A named business publication reports the company will open a Bengaluru capability centre.',date:'1d ago',src:'press',conf:'Announced'},
+     {type:'eor',label:'Early hiring',text:'First India roles appear via an employer-of-record, before entity setup.',date:'3d ago',src:'eor',conf:'Reported'}],
+   who:'Real-estate and setup advisors track announcements first — the earliest point to win the mandate.'},
+  {id:'lloyds-sig',nm:'Lloyds Banking Group',av:'#17B26A',sector:'BFSI',city:'Hyderabad',stage:'hiring',tag:'hiring',tagl:'Hiring',daysAgo:2,dateLabel:'2d ago',
+   headline:'Scaling its Hyderabad technology centre',de:'120+ engineering and data roles posted this week.',src:'jobs',verified:true,relatedId:'lloyds',meta:'120+ open roles · technology & data',
+   evidence:[{type:'jobs',label:'Job postings',text:'120+ roles across engineering and data posted on career pages.',date:'2d ago',src:'jobs',conf:'Live'},
+     {type:'mca',label:'Entity on record',text:'India entity verified at MCA (incorporated 2023).',date:'2023',src:'mca',conf:'Verified'}],
+   who:'Recruiters and comp-benchmarking firms watch hiring surges to time their outreach.'},
+  {id:'northwind',nm:'Northwind Mobility',av:'#8C5BE8',sector:'Automotive / ER&D',city:'Pune',stage:'incorporated',tag:'brand',tagl:'Incorporated',daysAgo:4,dateLabel:'4d ago',
+   headline:'Registered its India entity in Pune',de:'EU mobility group incorporates ahead of an ER&D build-out.',src:'mca',verified:true,relatedId:null,meta:'Entity verified · ER&D planned',
+   evidence:[{type:'mca',label:'Incorporation',text:'New wholly-owned subsidiary registered at the RoC (CIN verified).',date:'4d ago',src:'mca',conf:'Verified'},
+     {type:'press',label:'Press report',text:'Trade press links the entity to a planned engineering centre.',date:'1w ago',src:'press',conf:'Announced'}],
+   who:'Legal, tax and fit-out providers engage once an entity is registered.'},
+  {id:'mercedes-sig',nm:'Mercedes-Benz R&D',av:'#15172A',sector:'Automotive / ER&D',city:'Bengaluru',stage:'expanding',tag:'expand',tagl:'Expanding',daysAgo:5,dateLabel:'5d ago',
+   headline:'Expanding its Bengaluru engineering mandate',de:'New software and simulation roles point to a larger charter.',src:'jobs',verified:true,relatedId:'mercedes',meta:'Engineering R&D · software & simulation',
+   evidence:[{type:'jobs',label:'Job postings',text:'Uptick in embedded, software and simulation roles.',date:'5d ago',src:'jobs',conf:'Live'},
+     {type:'press',label:'Press report',text:'Company statements point to an expanded India R&D charter.',date:'2w ago',src:'press',conf:'Reported'}],
+   who:'Talent and workspace providers follow expansions at established centres.'},
+  {id:'wellsfargo-sig',nm:'Wells Fargo',av:'#C0392B',sector:'BFSI',city:'Hyderabad',stage:'leased',tag:'teal',tagl:'Leased',daysAgo:8,dateLabel:'1w ago',
+   headline:'Leased additional space in Hyderabad',de:'A fresh Grade-A floor plate signals a headcount ramp.',src:'lease',verified:true,relatedId:'wellsfargo',meta:'Additional Grade-A space · Hyderabad',
+   evidence:[{type:'lease',label:'Office lease',text:'Additional Grade-A floor plate signed in the IT corridor.',date:'1w ago',src:'lease',conf:'Reported'},
+     {type:'jobs',label:'Job postings',text:'Operations and technology roles rising in parallel.',date:'1w ago',src:'jobs',conf:'Live'}],
+   who:'A lease is a reliable leading indicator of a hiring wave — staffing firms act on it.'},
+  {id:'mcdonalds',nm:"McDonald's",av:'#D4A017',sector:'Retail / QSR',city:'Hyderabad',stage:'live',tag:'live',tagl:'Live',daysAgo:10,dateLabel:'Now live',
+   headline:'GCC now live at HITEC City, Hyderabad',de:'~1.56 lakh sq ft leased; the centre is operational and hiring.',src:'lease',verified:true,relatedId:null,meta:'~1.56 lakh sq ft · RMZ Nexity, HITEC City',
+   evidence:[{type:'lease',label:'Office lease',text:'~1.56 lakh sq ft leased at RMZ Nexity, HITEC City (5-year term).',date:'Feb 2025',src:'lease',conf:'Reported'},
+     {type:'mca',label:'Entity on record',text:'India entity verified at MCA.',date:'2024',src:'mca',conf:'Verified'},
+     {type:'jobs',label:'Job postings',text:'Technology and operations roles live across the centre.',date:'Ongoing',src:'jobs',conf:'Live'}],
+   who:'A verified, real example — the kind of fully-sourced signal Atlas is built around.'},
+  {id:'target-sig',nm:'Target',av:'#CC0000',sector:'Retail',city:'Bengaluru',stage:'hiring',tag:'hiring',tagl:'Hiring',daysAgo:12,dateLabel:'2w ago',
+   headline:'Posted 60+ roles in Bengaluru',de:'Supply-chain and product hiring steps up.',src:'jobs',verified:true,relatedId:'target',meta:'60+ open roles · supply chain & product',
+   evidence:[{type:'jobs',label:'Job postings',text:'60+ roles in supply chain and product posted.',date:'2w ago',src:'jobs',conf:'Live'}],
+   who:'Recruiters watch role spikes to pitch RPO and niche hiring.'},
+  {id:'hsbc-sig',nm:'HSBC',av:'#15172A',sector:'BFSI',city:'Pune',stage:'expanding',tag:'expand',tagl:'Expanding',daysAgo:18,dateLabel:'3w ago',
+   headline:'Growing its Pune technology footprint',de:'Parallel lease and hiring activity in Pune.',src:'jobs',verified:true,relatedId:'hsbc',meta:'Technology & operations · Pune',
+   evidence:[{type:'lease',label:'Office lease',text:'Expanded space in a Pune IT park.',date:'3w ago',src:'lease',conf:'Reported'},
+     {type:'jobs',label:'Job postings',text:'Technology and operations roles rising.',date:'3w ago',src:'jobs',conf:'Live'}],
+   who:'Workspace and talent providers track multi-signal expansions.'},
+  {id:'atlassian-sig',nm:'Atlassian',av:'#2E7BF6',sector:'Technology',city:'Bengaluru',stage:'hiring',tag:'hiring',tagl:'Hiring',daysAgo:24,dateLabel:'3w ago',
+   headline:'Hiring across product and platform',de:'Engineering and product roles added in Bengaluru.',src:'jobs',verified:true,relatedId:'atlassian',meta:'Product & platform engineering',
+   evidence:[{type:'jobs',label:'Job postings',text:'Product and platform engineering roles posted.',date:'3w ago',src:'jobs',conf:'Live'}],
+   who:'Comp-benchmarking firms track product-engineering demand.'},
+  {id:'airbnb-sig',nm:'Airbnb',av:'#E5484D',sector:'Technology',city:'Gurugram',stage:'expanding',tag:'expand',tagl:'Expanding',daysAgo:30,dateLabel:'1mo ago',
+   headline:'Broadening its India technology charter',de:'New roles suggest a wider mandate from Gurugram.',src:'jobs',verified:true,relatedId:'airbnb',meta:'Technology & product',
+   evidence:[{type:'jobs',label:'Job postings',text:'Technology and product roles across Gurugram and Bengaluru.',date:'1mo ago',src:'jobs',conf:'Live'}],
+   who:'Talent providers watch charter expansions for senior hiring.'},
+  {id:'sap-sig',nm:'SAP Labs',av:'#1A73B8',sector:'Technology',city:'Bengaluru',stage:'expanding',tag:'expand',tagl:'Expanding',daysAgo:36,dateLabel:'1mo ago',
+   headline:'Scaling product engineering in Bengaluru',de:'Continued investment in its largest R&D base outside Germany.',src:'press',verified:true,relatedId:'saplabs',meta:'Product engineering · Bengaluru',
+   evidence:[{type:'press',label:'Press report',text:'Company signals continued India R&D investment.',date:'1mo ago',src:'press',conf:'Reported'},
+     {type:'jobs',label:'Job postings',text:'Product engineering roles posted.',date:'1mo ago',src:'jobs',conf:'Live'}],
+   who:'Workspace and talent providers track sustained expansions.'},
+];
+
+const CITIES = [
+  {id:'bengaluru',nm:'Bengaluru',de:'Leads on total GCCs',v:'880',plus:true,range:'range',note:'reported 880, range 487–1,100'},
+  {id:'hyderabad',nm:'Hyderabad',de:'Leading new setups in 2025',v:'355',plus:true,src:'zinnov'},
+  {id:'ncr',nm:'Delhi NCR',de:'Third-largest hub',v:'272',plus:true,src:'vestian'},
+  {id:'pune',nm:'Pune',de:'Strong engineering base',v:'178',plus:true,src:'vestian'},
+  {id:'chennai',nm:'Chennai',de:'Fast-growing from 2021',v:'162',plus:true,src:'vestian'},
+];
+
+/* search index */
+const GCCS = [
+  {id:'jpmorgan',nm:'JPMorgan Chase',sec:'BFSI',av:'#2E3192',region:'US',est:2002,hcNum:30000,cities:['Mumbai','Hyderabad','Bengaluru'],functions:['Technology','Operations','Risk & Finance']},
+  {id:'wellsfargo',nm:'Wells Fargo',sec:'BFSI',av:'#C0392B',region:'US',est:2006,hcNum:15000,cities:['Hyderabad','Bengaluru','Chennai'],functions:['Technology','Operations','Data & AI']},
+  {id:'hsbc',nm:'HSBC',sec:'BFSI',av:'#15172A',region:'UK',est:2003,hcNum:25000,cities:['Hyderabad','Pune','Bengaluru'],functions:['Technology','Operations']},
+  {id:'goldman',nm:'Goldman Sachs',sec:'BFSI',av:'#3C40B6',region:'US',est:2004,hcNum:9000,cities:['Bengaluru','Hyderabad'],functions:['Technology','Operations','Data & AI']},
+  {id:'walmart',nm:'Walmart Global Tech',sec:'Retail',av:'#2E7BF6',region:'US',est:2014,hcNum:12000,cities:['Chennai','Bengaluru'],functions:['Technology','Supply chain','Data & AI']},
+  {id:'target',nm:'Target',sec:'Retail',av:'#CC0000',region:'US',est:2005,hcNum:4500,cities:['Bengaluru'],functions:['Technology','Supply chain']},
+  {id:'airbnb',nm:'Airbnb',sec:'Technology',av:'#E5484D',region:'US',est:2016,hcNum:1200,cities:['Bengaluru','Gurugram'],functions:['Technology','Product']},
+  {id:'atlassian',nm:'Atlassian',sec:'Technology',av:'#2E7BF6',region:'APAC',est:2018,hcNum:1500,cities:['Bengaluru'],functions:['Technology','Product']},
+  {id:'adobe',nm:'Adobe',sec:'Technology',av:'#E5484D',region:'US',est:1998,hcNum:7000,cities:['Bengaluru','Noida'],functions:['Technology','Product','Design']},
+  {id:'saplabs',nm:'SAP Labs',sec:'Technology',av:'#1A73B8',region:'Europe',est:1998,hcNum:13000,cities:['Bengaluru','Pune','Gurugram'],functions:['Technology','Product']},
+  {id:'mercedes',nm:'Mercedes-Benz R&D',sec:'Automotive / ER&D',av:'#15172A',region:'Europe',est:1996,hcNum:8000,cities:['Bengaluru'],functions:['Engineering R&D','Technology','Design']},
+  {id:'lloyds',nm:'Lloyds Banking Group',sec:'BFSI',av:'#17B26A',region:'UK',est:2023,hcNum:3500,cities:['Hyderabad','Pune'],functions:['Technology','Data & AI']},
+];
+const CITY_SEARCH = [
+  {id:'bengaluru',nm:'Bengaluru',de:'880+ GCCs · leads on total'},
+  {id:'hyderabad',nm:'Hyderabad',de:'355+ GCCs · leads new setups'},
+  {id:'pune',nm:'Pune',de:'178+ GCCs · engineering base'},
+  {id:'chennai',nm:'Chennai',de:'162+ GCCs · fast-growing'},
+  {id:'ahmedabad',nm:'Ahmedabad',de:'Largest emerging tier-2 hub'},
+  {id:'coimbatore',nm:'Coimbatore',de:'Emerging tier-2 city'},
+  {id:'kochi',nm:'Kochi',de:'Emerging tier-2 city'},
+];
+const SCHEMES = [
+  {id:'karnataka',nm:'Karnataka GCC Policy 2024–29',de:'Target 500 GCCs · 350,000 jobs'},
+  {id:'maharashtra',nm:'Maharashtra GCC Policy 2025',de:'Capital & payroll subsidies'},
+  {id:'gujarat',nm:'Gujarat GCC Policy 2025–30',de:'Target 250+ GCCs · 50,000 jobs'},
+  {id:'up',nm:'Uttar Pradesh GCC Policy 2024',de:'Up to 25% capital subsidy'},
+  {id:'tamilnadu',nm:'Tamil Nadu',de:'Sector incentives + GCC support'},
+  {id:'telangana',nm:'Telangana',de:'2nd ICT policy + T-AIM'},
+];
+const PROVIDERS = [
+  {nm:'ANSR',de:'GCC-as-a-service · setup & BOT'},
+  {nm:'Zinnov',de:'Advisory · location strategy'},
+  {nm:'Wisemonk',de:'EOR & payroll'},
+  {nm:'CBRE',de:'Commercial real estate'},
+  {nm:'Taggd',de:'Talent & recruitment'},
+  {nm:'Dhruva Advisors',de:'Tax & transfer pricing'},
+];
+const TRENDING = ['BFSI GCCs','Hyderabad','Karnataka scheme','EOR providers','Tier-2 cities'];
+
+/* ======================= HELPERS ======================= */
+const $ = s => document.querySelector(s);
+const esc = s => (s||'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+function avatarText(nm){const w=nm.replace(/[^A-Za-z ]/g,'').trim().split(/\s+/);
+  if(w.length===1) return w[0].slice(0,2).toUpperCase();
+  return ((w[0][0]||'')+(w[1][0]||'')).toUpperCase();}
+
+/* ======================= COMPONENTS ======================= */
+function srcChip(id){const s=SRC[id];return `<button class="srcchip" data-src="${id}">${I.shield}${esc(s.name)} ${esc(s.asof)}<span class="ch">${I.chevSm}</span></button>`;}
+function miniSrc(id){const s=SRC[id];return `<button class="src" data-src="${id}">${I.shield}${esc(s.name)}</button>`;}
+function signalFoot(id){const s=SRC[id];return `<button class="ch" data-src="${id}">${I.shield}${esc(s.name)}</button>`;}
+
+/* ======================= SCREENS ======================= */
+function screenHome(){
+  const cells = STATS.cells.map(c=>`
+    <div class="statcell">
+      <div class="v">${c.v}<span class="u">${c.u}</span></div>
+      <div class="l">${c.l}</div>
+      ${miniSrc(c.src)}
+    </div>`).join('');
+
+  const tiles = MODULES.map(m=>`
+    <button class="tile" data-tab="${m.tab}">
+      <div class="ic ${m.cls}">${I[m.icon]}</div>
+      <div><div class="tt">${m.tt}</div><div class="ts">${m.ts}</div></div>
+      <div class="meta">${m.meta}</div>
+    </button>`).join('');
+
+  const signals = SIGNALS.slice(0,3).map(s=>`
+    <div class="signal" data-signal="${s.id}">
+      <div class="av" style="background:${s.av}">${avatarText(s.nm)}</div>
+      <div class="mid">
+        <div class="nm">${esc(s.nm)}</div>
+        <div class="de">${esc(s.de)}</div>
+        <div class="foot">
+          <span class="tag tag-${s.tag}"><span class="d"></span>${s.tagl}</span>
+          ${signalFoot(s.src)}
+        </div>
+      </div>
+    </div>`).join('');
+
+  const cityRows = CITIES.map((c,i)=>`
+    <button class="lrow" data-city="${c.id}">
+      <span class="rank">${i+1}</span>
+      <div><div class="cnm">${esc(c.nm)}</div><div class="cde">${esc(c.de)}</div></div>
+      <div class="rt">
+        <div class="v">${c.v}${c.plus?'<span class="plus">+</span>':''}</div>
+        <div class="s">${c.range?'reported · range 487–1,100':'GCCs'}</div>
+      </div>
+      <span class="chev">${I.chev}</span>
+    </button>`).join('');
+
+  return `
+  <div class="hero">
+    <div class="greet">Welcome. Here's the <b>verified state of GCCs in India.</b></div>
+    <button class="searchbar" data-go="search">${I.search}<span>Search GCCs, cities, schemes…</span></button>
+
+    <div class="truthcard">
+      <div class="top">
+        <div class="cap"><span class="live"></span>Live count</div>
+        <div class="bignum">${STATS.hero.num}<span class="u">${STATS.hero.unit}</span></div>
+        <div class="bigsub">${STATS.hero.sub} — but <b>sources don't agree.</b></div>
+      </div>
+      <div class="range">
+        <div class="rl"><span>Lowest estimate</span><span><b>Reported ${STATS.hero.reported.toLocaleString()}</b></span><span>Highest</span></div>
+        <div class="track"><div class="fill"></div><div class="mark" style="left:44%"></div></div>
+        <div class="ends"><span>1,580</span><span>2,800</span></div>
+      </div>
+      <div class="srcrow">
+        ${srcChip('nz26')}
+        <button class="est" data-src="range">${I.info} Why the range?</button>
+      </div>
+    </div>
+
+    <div class="statrow">${cells}</div>
+  </div>
+
+  <div class="sec">
+    <div class="sechead"><h2>Explore the ecosystem</h2></div>
+    <div class="tiles">${tiles}</div>
+  </div>
+
+  <div class="sec">
+    <div class="sechead"><h2>Who's coming next</h2>
+      <button class="more" data-tab="pipeline">See all ${I.chevSm}</button></div>
+    <div class="seclead">New and expanding GCCs, each traced back to a source.</div>
+    <div class="pipe">
+      <div class="ph">
+        <div><div class="n">48</div></div>
+        <div class="t"><b>new centres tracked</b> across India so far in 2025</div>
+        <span class="badge">${signalFootBadge('flexiple')}</span>
+      </div>
+      ${signals}
+    </div>
+  </div>
+
+  <div class="sec">
+    <div class="sechead"><h2>Leading cities</h2>
+      <button class="more" data-tab="locations">Compare ${I.chevSm}</button></div>
+    <div class="seclead">Where GCCs cluster — with the honest spread, not one false number.</div>
+    <div class="ledger">${cityRows}</div>
+  </div>
+
+  <div class="trust">
+    <div class="shield">${I.shieldFill}</div>
+    <h3>Every number has a receipt</h3>
+    <p>Atlas is neutral — it sells no setup, real estate or advisory. Tap any source mark to see where a figure came from, how fresh it is, and whether it's measured or estimated.</p>
+    <button class="cta" data-trust="1">${I.shield} How we know this</button>
+  </div>
+
+  <div style="height:22px"></div>`;
+}
+function signalFootBadge(id){const s=SRC[id];return `<button class="tag tag-announce" data-src="${id}" style="border:none"><span class="d"></span>${esc(s.name)}</button>`;}
+
+function screenSearch(q){
+  q = q||'';
+  let body;
+  if(!q.trim()){
+    body = `
+      <div class="pad">
+        <div class="subtle">Trending now</div>
+        <div class="chips">${TRENDING.map(t=>`<button class="chip" data-q="${esc(t)}">${esc(t)}</button>`).join('')}</div>
+        <div style="height:24px"></div>
+        <div class="subtle">Browse</div>
+        <div class="chips">
+          <button class="chip" data-tab="gccs">GCC registry</button>
+          <button class="chip" data-tab="pipeline">Pipeline</button>
+          <button class="chip" data-tab="locations">Cities & schemes</button>
+          <button class="chip" data-tab="ecosystem">Providers</button>
+        </div>
+      </div>`;
+  } else {
+    const ql = q.toLowerCase();
+    const mg = (arr,f)=>arr.filter(f);
+    const g = mg(GCCS, x=>(x.nm+x.sec+x.city).toLowerCase().includes(ql));
+    const c = mg(CITY_SEARCH, x=>(x.nm+x.de).toLowerCase().includes(ql));
+    const s = mg(SCHEMES, x=>(x.nm+x.de).toLowerCase().includes(ql));
+    const p = mg(PROVIDERS, x=>(x.nm+x.de).toLowerCase().includes(ql));
+    const total = g.length+c.length+s.length+p.length;
+    if(!total){
+      body = `<div class="empty"><div class="big">No matches for "${esc(q)}"</div>
+        <p>Try a company, a city like Hyderabad, a state scheme, or a provider category.</p></div>`;
+    } else {
+      const grp = (title,items,render)=> items.length? `
+        <div class="resgroup"><div class="subtle">${title} · ${items.length}</div>
+        ${items.map(render).join('')}</div>` : '';
+      body = `<div class="pad">
+        ${grp('GCCs',g,x=>`<button class="res" data-company="${x.id}">
+          <div class="av" style="background:${x.av}">${avatarText(x.nm)}</div>
+          <div><div class="nm">${esc(x.nm)}</div><div class="de">${esc(x.sec)} · ${esc(x.cities.join(' · '))}</div></div>
+          <span class="chev">${I.chev}</span></button>`)}
+        ${grp('Cities',c,x=>`<button class="res" data-city="${x.id}">
+          <div class="av soft">${I.pin}</div>
+          <div><div class="nm">${esc(x.nm)}</div><div class="de">${esc(x.de)}</div></div>
+          <span class="chev">${I.chev}</span></button>`)}
+        ${grp('State schemes',s,x=>`<button class="res" data-scheme="${x.id}">
+          <div class="av soft">${I.doc}</div>
+          <div><div class="nm">${esc(x.nm)}</div><div class="de">${esc(x.de)}</div></div>
+          <span class="chev">${I.chev}</span></button>`)}
+        ${grp('Providers',p,x=>`<button class="res" data-toast="Provider profiles open in Part 5 — Ecosystem">
+          <div class="av soft">${I.grid}</div>
+          <div><div class="nm">${esc(x.nm)}</div><div class="de">${esc(x.de)}</div></div>
+          <span class="chev">${I.chev}</span></button>`)}
+      </div>`;
+    }
+  }
+  return `<div class="searchbody">${body}</div>`;
+}
+
+function screenPlaceholder(tab){
+  const map={
+    gccs:{icon:'building',cls:'ic-brand',t:'GCC registry',part:'Part 2',
+      d:'The searchable directory of every GCC in India — companies and their individual centres — each verified to a source.',
+      items:['Filter by city, sector, function, headcount','Company profiles with cities & units','Leadership and live hiring signals','A visible sources panel on every record']},
+    pipeline:{icon:'signal',cls:'ic-live',t:"Who's coming next",part:'Part 3',
+      d:'A live feed of new, announced and expanding GCCs — the signal every service provider wants first.',
+      items:['Signals by stage: announced, hiring, leased, live','The evidence trail behind each signal','Traced back to filings, press and leases','Filter by city and sector']},
+    locations:{icon:'pin',cls:'ic-hiring',t:'Cities & schemes',part:'Part 4',
+      d:'Compare cities and state incentive schemes side by side — with the honest spread where counts disagree.',
+      items:['City leaderboard and compare view','Rent, talent and salary benchmarks','State schemes: subsidies and eligibility','Each figure linked to its policy source']},
+    ecosystem:{icon:'grid',cls:'ic-expand',t:'Providers & talent',part:'Part 5',
+      d:'Find who actually delivers — advisors, lawyers, tax, real estate, recruiters and EOR — plus talent and pay by city.',
+      items:['Providers by category, with track records','Verified “who delivers” quality signals','Compensation by role and city','The full trust & methodology view']},
+  };
+  const m=map[tab];
+  const col={gccs:'var(--brand)',pipeline:'var(--live)',locations:'var(--hiring)',ecosystem:'var(--expand)'}[tab];
+  return `<div class="ph-screen fadein">
+    <div class="big-ic ${m.cls}">${I[m.icon]}</div>
+    <h2>${m.t}</h2>
+    <div class="roadtag">${I.spark} Arrives in ${m.part}</div>
+    <p>${m.d}</p>
+    <div class="ph-list">
+      ${m.items.map(it=>`<div class="it"><span class="d" style="background:${col}"></span><span>${esc(it)}</span></div>`).join('')}
+    </div>
+  </div>`;
+}
+
+/* ======================= PART 2 — REGISTRY ======================= */
+const SECTORS=['BFSI','Technology','Retail','Automotive / ER&D'];
+const SECTOR_SHORT={'Automotive / ER&D':'ER&D'};
+const PARENT_LABEL={US:'United States',UK:'United Kingdom',Europe:'Europe',APAC:'Asia–Pacific'};
+const FOPTS={cities:['Bengaluru','Hyderabad','Delhi NCR','Mumbai','Pune','Chennai'],sectors:SECTORS,
+  functions:['Technology','Engineering R&D','Operations','Data & AI','Supply chain','Product'],
+  hc:['<500','500–2,000','2,000–5,000','5,000–20,000','20,000+'],parents:['US','UK','Europe','APAC']};
+const FOCUS={'BFSI':['Technology & engineering','Operations & shared services','Risk, finance & analytics'],
+  'Technology':['Product & platform engineering','Data, AI & analytics','Cloud & reliability'],
+  'Retail':['Retail technology & product','Supply chain & operations','Analytics & merchandising'],
+  'Automotive / ER&D':['Engineering R&D','Embedded & software','Design & simulation']};
+const NAMES=['Rohan Mehta','Priya Nair','Arjun Rao','Divya Menon','Karthik Iyer','Neha Gupta','Vikram Shah','Ananya Reddy','Siddharth Jain','Meera Krishnan'];
+function bucketOf(n){return n<500?'<500':n<2000?'500–2,000':n<5000?'2,000–5,000':n<20000?'5,000–20,000':'20,000+';}
+function bucketShort(n){return n<500?'<500':n<2000?'0.5k–2k':n<5000?'2k–5k':n<20000?'5k–20k':'20k+';}
+function rolesCount(c){return Math.min(180,Math.max(5,Math.round(c.hcNum/420)));}
+function hashIdx(s,mod){let h=0;for(let i=0;i<s.length;i++)h=(h*31+s.charCodeAt(i))>>>0;return h%mod;}
+function cityMatch(cs,f){if(f==='Delhi NCR')return cs.some(c=>/Gurugram|Noida|Delhi|Gurgaon|NCR/i.test(c));return cs.includes(f);}
+const FILTER={cities:new Set(),sectors:new Set(),functions:new Set(),hc:new Set(),parents:new Set()};
+let SORT='name';
+function filterActive(){return FILTER.cities.size||FILTER.sectors.size||FILTER.functions.size||FILTER.hc.size||FILTER.parents.size;}
+function matchC(c,F){
+  if(F.sectors.size&&!F.sectors.has(c.sec))return false;
+  if(F.parents.size&&!F.parents.has(c.region))return false;
+  if(F.hc.size&&!F.hc.has(bucketOf(c.hcNum)))return false;
+  if(F.cities.size&&![...F.cities].some(ci=>cityMatch(c.cities,ci)))return false;
+  if(F.functions.size&&!c.functions.some(fn=>F.functions.has(fn)))return false;
+  return true;
+}
+function countC(F){return GCCS.filter(c=>matchC(c,F)).length;}
+function applyList(){let a=GCCS.filter(c=>matchC(c,FILTER));
+  if(SORT==='name')a.sort((x,y)=>x.nm.localeCompare(y.nm));
+  else if(SORT==='hc')a.sort((x,y)=>y.hcNum-x.hcNum);
+  else if(SORT==='cities')a.sort((x,y)=>y.cities.length-x.cities.length);return a;}
+
+function gcard(c){const roles=rolesCount(c);return `<button class="gcard" data-company="${c.id}">
+  <div class="gav" style="background:${c.av}">${avatarText(c.nm)}</div>
+  <div class="gmid">
+    <div class="gnm">${esc(c.nm)}<span class="vchk">${I.shield}</span></div>
+    <div class="gde">${esc(c.sec)} · ${esc(PARENT_LABEL[c.region])}</div>
+    <div class="metarow">
+      <span class="m">${I.pin}${c.cities.length} ${c.cities.length>1?'cities':'city'}</span>
+      <span class="m">${I.people}${esc(bucketShort(c.hcNum))}</span>
+      <span class="m hot">${I.signal}${roles} roles</span>
+    </div>
+  </div><span class="chev">${I.chev}</span></button>`;}
+
+function screenDirectory(){
+  const a=applyList();
+  const sortLabel={name:'A–Z',hc:'Largest',cities:'Most centres'}[SORT];
+  const quick=['All',...SECTORS].map(s=>{const on=s==='All'?!FILTER.sectors.size:(FILTER.sectors.size===1&&FILTER.sectors.has(s));
+    return `<button class="qchip ${on?'on':''}" data-qsec="${esc(s)}">${esc(s==='All'?'All':(SECTOR_SHORT[s]||s))}</button>`;}).join('');
+  const rows=a.length?a.map(gcard).join(''):`<div class="empty"><div class="big">No GCCs match</div><p>Try removing a filter.</p></div>`;
+  return `<div class="dir-controls">
+    <div class="qrow">${quick}</div>
+    <div class="countrow"><span class="cnt"><b>${a.length}</b> shown · sample of 2,117 tracked</span>
+      <button class="sortbtn" data-sort="1">${I.sortIcon}${sortLabel}</button></div>
+  </div>
+  <div class="pad" style="padding-top:14px">${rows}</div>`;
+}
+
+function unitsOf(c){return c.cities.map((city,i)=>({city,focus:FOCUS[c.sec][i%3],main:i===0}));}
+function sampleRoles(c){
+  const city=i=>c.cities[i%c.cities.length];
+  const byFn={'Technology':'Senior Software Engineer','Engineering R&D':'Senior R&D Engineer','Operations':'Operations Analyst','Data & AI':'Data Scientist','Supply chain':'Supply Chain Analyst','Product':'Product Manager','Risk & Finance':'Risk Analyst','Design':'Product Designer'};
+  const fns=c.functions.slice(0,2).map((f,i)=>({t:byFn[f]||'Specialist',c:city(i)}));
+  fns.push({t:'Engineering Manager',c:city(1)});
+  return fns.slice(0,3);
+}
+function leadersOf(c){
+  const titlesBy={'BFSI':['India Site Leader','Head of Technology'],'Technology':['India Site Leader','Head of Engineering'],'Retail':['India Centre Head','Head of Product & Technology'],'Automotive / ER&D':['Managing Director, India','Head of Engineering']};
+  const t=titlesBy[c.sec];const base=hashIdx(c.id,NAMES.length);
+  return t.map((role,i)=>({role,name:NAMES[(base+i)%NAMES.length]}));
+}
+function cTag(conf){const m={'Verified':'tag-live','Live':'tag-live','Reported':'tag-neutral','Estimate':'tag-announce','Announced':'tag-announce'};
+  return `<span class="tag ${m[conf]||'tag-neutral'}"><span class="d"></span>${conf}</span>`;}
+
+function screenCompany(id){
+  const c=GCCS.find(x=>x.id===id);if(!c)return `<div class="empty"><div class="big">Not found</div></div>`;
+  const units=unitsOf(c),roles=rolesCount(c),leaders=leadersOf(c),sr=sampleRoles(c);
+  const stats=`<div class="statrow cstats">
+    <div class="statcell"><div class="v">${bucketShort(c.hcNum)}</div><div class="l">India headcount</div><button class="src" data-src="model">${I.shield}Estimate</button></div>
+    <div class="statcell"><div class="v">${c.cities.length}</div><div class="l">Centres (units)</div><button class="src" data-src="website">${I.shield}Reported</button></div>
+    <div class="statcell"><div class="v">${c.est}</div><div class="l">Established</div><button class="src" data-src="mca">${I.shield}Verified</button></div>
+  </div>`;
+  const uhtml=units.map(u=>`<div class="urow"><div class="uav">${I.building}</div>
+    <div><div class="unm">${esc(u.city)}</div><div class="ufocus">${esc(u.focus)}</div></div>
+    ${u.main?'<span class="utag">Main centre</span>':''}</div>`).join('');
+  const fhtml=c.functions.map(f=>`<span class="ftag">${esc(f)}</span>`).join('');
+  const rhtml=sr.map(r=>`<div class="hrole"><span class="dot"></span><span class="rt">${esc(r.t)}</span><span class="rc">${esc(r.c)}</span></div>`).join('');
+  const lhtml=leaders.map(l=>`<div class="lead"><div class="lav">${avatarText(l.name)}</div>
+    <div><div class="lrole">${esc(l.role)}</div><div class="lname">${esc(l.name)}</div></div>
+    <button class="src" data-src="linkedin" style="margin-left:auto">${I.shield}LinkedIn</button></div>`).join('');
+  const sp=[['Existence & entity','MCA / RoC — CIN verified','Verified','mca'],
+    ['Centres & cities','Company site + press','Reported','website'],
+    ['Headcount','Atlas model estimate','Estimate','model'],
+    ['Hiring signals','Job boards, live','Live','jobs'],
+    ['Leadership','LinkedIn / company','Reported','linkedin']];
+  const sphtml=sp.map(r=>`<button class="sprow" data-src="${r[3]}">
+    <div class="sl"><div class="k">${esc(r[0])}</div><div class="s">${I.shield}${esc(r[1])}</div></div>${cTag(r[2])}</button>`).join('');
+  return `<div class="cdetail fadein">
+    <div class="chead">
+      <div class="cav" style="background:${c.av}">${avatarText(c.nm)}</div>
+      <div class="cnm">${esc(c.nm)}<span class="vchk">${I.shield}</span></div>
+      <div class="cmeta">${esc(c.sec)} · ${esc(PARENT_LABEL[c.region])} · est. ${c.est}</div>
+    </div>
+    ${stats}
+    <div class="sec"><div class="sechead"><h2>Where they are</h2></div><div class="ledger">${uhtml}</div></div>
+    <div class="sec"><div class="sechead"><h2>What they do</h2></div><div class="ftags">${fhtml}</div></div>
+    <div class="sec"><div class="sechead"><h2>Hiring now</h2></div>
+      <div class="hire"><div class="hh"><div class="n">${roles}</div><div class="t"><b>open roles</b> across India right now</div><span style="margin-left:auto">${cTag('Live')}</span></div>${rhtml}</div></div>
+    <div class="sec"><div class="sechead"><h2>Leadership</h2></div><div class="ledger">${lhtml}</div></div>
+    <div class="sec"><div class="sechead"><h2>Sources &amp; confidence</h2></div>
+      <div class="seclead">Every field on this profile, and how Atlas knows it. Tap a row for detail.</div>
+      <div class="srcpanel">${sphtml}</div></div>
+    <button class="cta-ghost" data-toast="Intro request sent to verified providers (demo)">${I.people}Request a warm intro</button>
+    <div class="cfoot">Profile compiled by Atlas from the sources above. Figures marked “estimate” are modelled, not measured.</div>
+  </div>`;
+}
+
+function openFilter(){
+  const T={cities:new Set(FILTER.cities),sectors:new Set(FILTER.sectors),functions:new Set(FILTER.functions),hc:new Set(FILTER.hc),parents:new Set(FILTER.parents)};
+  const sec=(title,key)=>`<div class="fsec"><div class="fsec-t">${title}</div><div class="fchips">${FOPTS[key].map(o=>`<button class="fchip ${T[key].has(o)?'on':''}" data-fk="${key}" data-fv="${esc(o)}">${esc(SECTOR_SHORT[o]||o)}</button>`).join('')}</div></div>`;
+  const sh=$('#sheet');
+  sh.innerHTML=`<div class="grab"></div>
+    <div class="fhead"><h3>Filter GCCs</h3><button class="freset" data-freset="1">Reset</button></div>
+    ${sec('Sector','sectors')}${sec('City','cities')}${sec('Function','functions')}${sec('Headcount','hc')}${sec('Parent HQ','parents')}
+    <button class="fapply" data-fapply="1">Show <span id="fcount">${countC(T)}</span> GCCs</button>`;
+  const upd=()=>{const el=$('#fcount');if(el)el.textContent=countC(T);};
+  sh.querySelectorAll('[data-fk]').forEach(b=>b.onclick=()=>{const k=b.dataset.fk,v=b.dataset.fv;T[k].has(v)?T[k].delete(v):T[k].add(v);b.classList.toggle('on');upd();});
+  sh.querySelector('[data-freset]').onclick=()=>{Object.keys(T).forEach(k=>T[k].clear());sh.querySelectorAll('.fchip.on').forEach(x=>x.classList.remove('on'));upd();};
+  sh.querySelector('[data-fapply]').onclick=()=>{FILTER.cities=T.cities;FILTER.sectors=T.sectors;FILTER.functions=T.functions;FILTER.hc=T.hc;FILTER.parents=T.parents;closeSheet();render();};
+  openSheet();
+}
+
+/* ======================= PART 3 — PIPELINE ======================= */
+let PIPE_STAGE='all';
+const STAGES=[['all','All'],['announced','Announced'],['incorporated','Incorporated'],['leased','Leased'],['hiring','Hiring'],['expanding','Expanding'],['live','Live']];
+const NODEVAR={announce:'accent-bright',brand:'brand',teal:'teal',hiring:'hiring',expand:'expand',live:'live'};
+function evIcon(t){return {press:I.doc,mca:I.shield,lease:I.building,jobs:I.signal,eor:I.people}[t]||I.info;}
+function evClass(t){return {press:'ic-amber',mca:'ic-brand',lease:'ic-teal',jobs:'ic-live',eor:'ic-hiring'}[t]||'ic-ink';}
+function pipeList(){return SIGNALS.filter(s=>PIPE_STAGE==='all'||s.stage===PIPE_STAGE).sort((a,b)=>a.daysAgo-b.daysAgo);}
+function signalCard(s){return `<div class="tlitem" data-signal="${s.id}">
+   <span class="tlnode" style="background:var(--${NODEVAR[s.tag]})"></span>
+   <div class="scard">
+     <div class="sc-top"><div class="sc-av" style="background:${s.av}">${avatarText(s.nm)}</div>
+       <div class="sc-nm">${esc(s.nm)}</div><span class="sc-date">${esc(s.dateLabel)}</span></div>
+     <div class="sc-head">${esc(s.headline)}</div>
+     <div class="sc-de">${esc(s.de)}</div>
+     <div class="sc-foot"><span class="tag tag-${s.tag}"><span class="d"></span>${s.tagl}</span>
+       ${s.verified?`<span class="vchk sm">${I.shield}Verified</span>`:''}
+       <span class="ev">${I.doc}${s.evidence.length} sources</span></div>
+   </div></div>`;}
+function screenPipeline(){
+  const list=pipeList();
+  const chips=STAGES.map(([id,l])=>`<button class="qchip ${PIPE_STAGE===id?'on':''}" data-stage="${id}">${l}</button>`).join('');
+  const buckets=[['This week',d=>d<=7],['This month',d=>d>7&&d<=30],['Earlier',d=>d>30]];
+  let feed='';
+  if(!list.length) feed=`<div class="empty"><div class="big">No signals at this stage</div><p>Try another stage, or view all.</p></div>`;
+  else buckets.forEach(([lab,test])=>{const it=list.filter(s=>test(s.daysAgo));if(!it.length)return;
+    feed+=`<div class="tlgroup-h">${lab}</div><div class="tl">${it.map(signalCard).join('')}</div>`;});
+  return `<div class="pipe-head">
+     <div class="ph2"><div class="n">48</div><div class="t"><b>new centres tracked</b> in 2025 — here's the live flow.</div>${signalFootBadge('flexiple')}</div>
+     <div class="disc">${I.info}<span>Working sample — McDonald's is a verified live example; the rest illustrate the signal types Atlas tracks.</span></div>
+     <div class="qrow stagerow">${chips}</div>
+   </div>
+   <div class="feed">${feed}</div>`;
+}
+function screenSignal(id){
+  const s=SIGNALS.find(x=>x.id===id);if(!s)return `<div class="empty"><div class="big">Not found</div></div>`;
+  const ev=s.evidence.map(e=>`<button class="erow" data-src="${e.src}">
+     <div class="eic ${evClass(e.type)}">${evIcon(e.type)}</div>
+     <div class="emid"><div class="el">${esc(e.label)} <span class="ed">${esc(e.date)}</span></div>
+       <div class="et">${esc(e.text)}</div></div>${cTag(e.conf)}</button>`).join('');
+  let related;
+  if(s.relatedId){const rc=GCCS.find(x=>x.id===s.relatedId);
+    related=`<button class="relcard" data-company="${rc.id}"><div class="gav" style="background:${rc.av};width:42px;height:42px;border-radius:12px;font-size:14px">${avatarText(rc.nm)}</div>
+      <div style="flex:1;min-width:0"><div class="gnm">${esc(rc.nm)}<span class="vchk">${I.shield}</span></div><div class="gde">${esc(rc.sec)} · in the registry</div></div>
+      <span class="chev">${I.chev}</span></button>`;
+  } else related=`<div class="relnone">${I.info}<span>Not yet in the registry. Atlas adds an entity once its incorporation is verified at MCA.</span></div>`;
+  const vbadge=s.verified?`<span class="vbadge">${I.shield}Verified against source records</span>`:`<span class="vbadge amber">${I.info}${s.tagl} — not yet verified at MCA</span>`;
+  return `<div class="cdetail fadein">
+    <div class="sg-head">
+      <div class="sg-top"><div class="sg-av" style="background:${s.av}">${avatarText(s.nm)}</div>
+        <div style="min-width:0"><div class="sg-nm">${esc(s.nm)}</div><div class="sg-meta">${esc(s.sector)} · ${esc(s.city)}</div></div>
+        <span class="sc-date" style="margin-left:auto">${esc(s.dateLabel)}</span></div>
+      <div class="sg-stage"><span class="tag tag-${s.tag}"><span class="d"></span>${s.tagl}</span>${vbadge}</div>
+      <div class="sg-headline">${esc(s.headline)}</div>
+      ${s.meta?`<div class="sg-metapill">${I.pin}${esc(s.meta)}</div>`:''}
+    </div>
+    <div class="sec"><div class="sechead"><h2>Evidence trail</h2></div>
+      <div class="seclead">What Atlas detected, oldest to newest. Tap any item for the source.</div>
+      <div class="etrail">${ev}</div></div>
+    <div class="sec"><div class="sechead"><h2>In the registry</h2></div>${related}</div>
+    <div class="sec"><div class="sechead"><h2>Who's watching this</h2></div>
+      <div class="whocard">${I.people}<span>${esc(s.who)}</span></div></div>
+    <button class="cta-ghost" data-toast="Alert set — you'll be notified of similar signals (demo)">${I.signal}Alert me on signals like this</button>
+    <div class="cfoot">Signals are compiled from public filings, press, leases and job boards, then verified where possible.</div>
+  </div>`;
+}
+
+/* ======================= PART 4 — LOCATIONS ======================= */
+let LOC_VIEW='cities', CITY_TIER='metro';
+const CMP={a:'bengaluru',b:'hyderabad'};
+const BASE_SAL=[{role:'Software Engineer',lo:16,hi:30},{role:'Senior Engineer',lo:32,hi:58},{role:'Engineering Manager',lo:60,hi:110},{role:'Data Scientist',lo:20,hi:42}];
+const SBC=['var(--brand)','var(--hiring)','var(--expand)','var(--teal)','var(--accent-bright)'];
+const CITYDATA=[
+ {id:'bengaluru',nm:'Bengaluru',state:'Karnataka',tier:'metro',rank:1,desc:'Leads on total GCCs',
+  gccR:880,gccMin:487,gccMax:1100,newLabel:'66+ new in H1 2026',rentLo:80,rentHi:115,talentLabel:'Largest',attr:'13–16',salFactor:1.0,countSrc:'zinnov',
+  sectors:[{n:'Technology',p:42},{n:'BFSI',p:24},{n:'Engineering R&D',p:16},{n:'Retail',p:10}],
+  clusters:['Outer Ring Road','Whitefield','Electronic City','CBD']},
+ {id:'hyderabad',nm:'Hyderabad',state:'Telangana',tier:'metro',rank:2,desc:'Leads new setups in 2025',
+  gccR:355,gccMin:273,gccMax:400,newLabel:'Most new setups in 2025',rentLo:60,rentHi:90,talentLabel:'Fast-growing',attr:'12–15',salFactor:0.95,countSrc:'zinnov',
+  sectors:[{n:'Technology',p:34},{n:'BFSI',p:30},{n:'Health & Pharma',p:14},{n:'Retail',p:10}],
+  clusters:['HITEC City','Gachibowli','Financial District','Kondapur']},
+ {id:'ncr',nm:'Delhi NCR',state:'Haryana & UP',tier:'metro',rank:3,desc:'Third-largest hub',
+  gccR:272,gccMin:272,gccMax:300,newLabel:'Steady growth',rentLo:45,rentHi:200,talentLabel:'Deep & broad',attr:'14–17',salFactor:0.97,countSrc:'vestian',
+  sectors:[{n:'Technology',p:36},{n:'BFSI',p:22},{n:'Consulting',p:14},{n:'Retail',p:12}],
+  clusters:['Gurugram — Cyber City','Golf Course Road','Noida','DLF Cyber Hub']},
+ {id:'mumbai',nm:'Mumbai',state:'Maharashtra',tier:'metro',rank:4,desc:'BFSI stronghold',
+  gccR:207,gccMin:200,gccMax:210,newLabel:'Finance-led',rentLo:150,rentHi:350,talentLabel:'Finance-heavy',attr:'14–17',salFactor:1.0,countSrc:'vestian',
+  sectors:[{n:'BFSI',p:44},{n:'Technology',p:24},{n:'Media',p:10},{n:'Consulting',p:10}],
+  clusters:['Bandra-Kurla Complex','Powai','Navi Mumbai','Goregaon']},
+ {id:'pune',nm:'Pune',state:'Maharashtra',tier:'metro',rank:5,desc:'Engineering base',
+  gccR:178,gccMin:178,gccMax:360,newLabel:'Engineering-led',rentLo:55,rentHi:95,talentLabel:'Engineering-rich',attr:'13–16',salFactor:0.92,countSrc:'vestian',
+  sectors:[{n:'Technology',p:38},{n:'Engineering R&D',p:22},{n:'BFSI',p:20},{n:'Automotive',p:10}],
+  clusters:['Hinjewadi','Kharadi','Baner','Magarpatta']},
+ {id:'chennai',nm:'Chennai',state:'Tamil Nadu',tier:'metro',rank:6,desc:'Fast-growing from 2021',
+  gccR:162,gccMin:162,gccMax:305,newLabel:'Doubled since 2021',rentLo:55,rentHi:85,talentLabel:'Strong engineering',attr:'12–15',salFactor:0.90,countSrc:'vestian',
+  sectors:[{n:'Technology',p:36},{n:'BFSI',p:22},{n:'Auto / ER&D',p:18},{n:'Retail',p:12}],
+  clusters:['OMR (IT Expressway)','Guindy','Ambattur','Siruseri']},
+ {id:'ahmedabad',nm:'Ahmedabad',state:'Gujarat',tier:'tier2',desc:'Largest tier-2 hub',
+  gccR:35,gccMin:0,gccMax:0,newLabel:'35+ GCCs & GICs',rentLo:35,rentHi:55,talentLabel:'Emerging',attr:'10–13',salFactor:0.78,countSrc:'flexiple',
+  sectors:[{n:'Technology',p:40},{n:'BFSI',p:20},{n:'Pharma',p:14}],clusters:['GIFT City','SG Highway','Prahlad Nagar']},
+ {id:'coimbatore',nm:'Coimbatore',state:'Tamil Nadu',tier:'tier2',desc:'Emerging engineering city',
+  gccR:0,gccMin:0,gccMax:0,rentLo:30,rentHi:48,talentLabel:'Emerging',attr:'9–12',salFactor:0.72,countSrc:'flexiple',
+  sectors:[{n:'Engineering R&D',p:38},{n:'Technology',p:34}],clusters:['Peelamedu','Saravanampatti']},
+ {id:'kochi',nm:'Kochi',state:'Kerala',tier:'tier2',desc:'Infopark-led growth',
+  gccR:0,gccMin:0,gccMax:0,rentLo:30,rentHi:48,talentLabel:'Emerging',attr:'9–12',salFactor:0.72,countSrc:'flexiple',
+  sectors:[{n:'Technology',p:42},{n:'BFSI',p:18}],clusters:['Infopark','SmartCity','Kakkanad']},
+ {id:'indore',nm:'Indore',state:'Madhya Pradesh',tier:'tier2',desc:'Rising central-India hub',
+  gccR:0,gccMin:0,gccMax:0,rentLo:28,rentHi:45,talentLabel:'Emerging',attr:'9–12',salFactor:0.70,countSrc:'flexiple',
+  sectors:[{n:'Technology',p:40},{n:'BFSI',p:18}],clusters:['Super Corridor','Vijay Nagar']},
+ {id:'jaipur',nm:'Jaipur',state:'Rajasthan',tier:'tier2',desc:'Emerging GCC location',
+  gccR:0,gccMin:0,gccMax:0,rentLo:28,rentHi:45,talentLabel:'Emerging',attr:'9–12',salFactor:0.70,countSrc:'flexiple',
+  sectors:[{n:'Technology',p:38},{n:'BFSI',p:16}],clusters:['Mansarovar','Sitapura']},
+ {id:'vizag',nm:'Visakhapatnam',state:'Andhra Pradesh',tier:'tier2',desc:'Coastal emerging hub',
+  gccR:0,gccMin:0,gccMax:0,rentLo:28,rentHi:45,talentLabel:'Emerging',attr:'9–12',salFactor:0.70,countSrc:'flexiple',
+  sectors:[{n:'Technology',p:38},{n:'BFSI',p:16}],clusters:['Rushikonda IT SEZ','Madhurawada']},
+];
+const SCHEMES2=[
+ {id:'karnataka',state:'Karnataka',policy:'Karnataka GCC Policy',years:'2024–29',status:'Active',
+  cmpTarget:'500',jobTarget:'3.5 lakh',timeline:'by 2029',cmpCapital:'Land 30–50%',cmpPayroll:'EPF reimbursed',
+  headline:'A “Beyond Bengaluru” push with R&D grants and rental reimbursement.',
+  incentives:[{label:'R&D grant',value:'Up to ₹50 crore'},{label:'Rental reimbursement',value:'Up to 50%'},{label:'Land subsidy',value:'30–50%'},{label:'EPF support',value:'Employer PF reimbursed'},{label:'Academic funding',value:'₹10,000 per student'}],
+  eligibility:[{label:'Priority',value:'New GCCs, especially beyond Bengaluru'}],
+  extras:['45-day single-window approvals','24×7 operations permitted'],src:'ka'},
+ {id:'maharashtra',state:'Maharashtra',policy:'Maharashtra GCC Policy',years:'2025',status:'Active',
+  cmpTarget:'200–400',jobTarget:'4 lakh',timeline:'by 2030',cmpCapital:'Up to 20%',cmpPayroll:'≤ ₹50k/emp/mo',
+  headline:'Capital or rental subsidy, plus payroll incentives for high-skill talent.',
+  incentives:[{label:'Capital subsidy',value:'Up to 20%'},{label:'Rental subsidy',value:'10–20%'},{label:'Payroll incentive',value:'Up to ₹50,000 / employee / month'}],
+  eligibility:[{label:'Payroll incentive',value:'High-skill roles qualify'}],
+  extras:['Targets quoted inconsistently across sources'],src:'mh',note:'The GCC target is quoted as both 200 and 400 across sources — Atlas shows the range rather than pick one.'},
+ {id:'gujarat',state:'Gujarat',policy:'Gujarat GCC Policy',years:'2025–30',status:'Active',
+  cmpTarget:'250+',jobTarget:'50,000',timeline:'by 2030',cmpCapital:'For 500+ jobs',cmpPayroll:'OpEx support',
+  headline:'A GIFT City focus with green-energy and OpEx incentives.',
+  incentives:[{label:'Capital incentive',value:'For 500+ direct jobs'},{label:'OpEx support',value:'Rental & power'},{label:'GIFT City / IFSC',value:'Additional benefits'}],
+  eligibility:[{label:'Minimum employees',value:'50'},{label:'Capital incentive',value:'500 direct jobs'}],
+  extras:['Green-energy focus'],src:'gj'},
+ {id:'up',state:'Uttar Pradesh',policy:'Uttar Pradesh GCC Policy',years:'2024',status:'Active',
+  cmpTarget:'—',jobTarget:'—',timeline:'hub-and-spoke',cmpCapital:'Up to 25%',cmpPayroll:'—',
+  headline:'Up to 25% capital subsidy with Level-1 and Advanced GCC tiers.',
+  incentives:[{label:'Capital subsidy',value:'Up to 25%'},{label:'Tiers',value:'Level-1 & Advanced GCC'}],
+  eligibility:[{label:'Employment',value:'UP-domicile focus'}],
+  extras:['Hub-and-spoke across cities'],src:'up'},
+ {id:'telangana',state:'Telangana',policy:'2nd ICT Policy',years:'2021–26',status:'Active',
+  cmpTarget:'—',jobTarget:'—',timeline:'—',cmpCapital:'—',cmpPayroll:'—',
+  headline:'Hyderabad-led, with T-AIM innovation support and 24×7 operations.',
+  incentives:[{label:'Innovation',value:'T-AIM ecosystem support'},{label:'Operations',value:'24×7 permitted'}],
+  eligibility:[],extras:[],src:'states7',note:'A GCC-specific policy is less consolidated publicly; terms draw on the ICT policy.'},
+ {id:'tamilnadu',state:'Tamil Nadu',policy:'Sector policies',years:'current',status:'Active',
+  cmpTarget:'—',jobTarget:'—',timeline:'—',cmpCapital:'Sector-based',cmpPayroll:'Employee support',
+  headline:'Sector-specific incentives plus GCC-employee support.',
+  incentives:[{label:'Incentives',value:'Sector-specific'},{label:'Talent',value:'GCC-employee incentives'}],
+  eligibility:[],extras:[],src:'states7'},
+];
+function LPA(v){v=Math.round(v);return v>=100?(v/100).toFixed(1).replace(/\.0$/,'')+' Cr':v+'L';}
+function salRange(lo,hi,f){return '₹'+LPA(lo*f)+'–'+LPA(hi*f);}
+function gccCountLabel(c){return c.gccR?c.gccR.toLocaleString()+'+':'Emerging';}
+function rangeViz(min,max,rep){const pct=Math.max(5,Math.min(95,((rep-min)/(max-min))*100));
+  return `<div class="range"><div class="rl"><span>Lowest</span><span><b>Reported ${rep.toLocaleString()}</b></span><span>Highest</span></div>
+   <div class="track"><div class="fill" style="left:6%;right:${Math.max(6,Math.round(100-pct-4))}%"></div><div class="mark" style="left:${pct}%"></div></div>
+   <div class="ends"><span>${min.toLocaleString()}</span><span>${max.toLocaleString()}</span></div></div>`;}
+function sbar(n,p,i){return `<div class="sbar"><div class="sbt"><span>${esc(n)}</span><span>${p}%</span></div><div class="sbtrack"><div class="sbfill" style="width:${p}%;background:${SBC[i%SBC.length]}"></div></div></div>`;}
+
+function cityRow(c){return `<button class="lrow" data-city="${c.id}">
+  <span class="rank">${c.rank||'·'}</span>
+  <div><div class="cnm">${esc(c.nm)}</div><div class="cde">${esc(c.desc)}</div></div>
+  <div class="rt"><div class="v">${c.gccR?c.gccR.toLocaleString()+'<span class="plus">+</span>':'<span style="font-size:13px;color:var(--teal)">Emerging</span>'}</div>
+    <div class="s">${c.gccR?'GCCs':'tier-2 hub'}</div></div>
+  <span class="chev">${I.chev}</span></button>`;}
+
+function schemeCard(s){return `<button class="schemecard" data-scheme="${s.id}">
+  <div class="sch-top"><div class="sch-nm">${esc(s.state)}</div><span class="tag ${s.status==='Active'?'tag-live':'tag-announce'}"><span class="d"></span>${s.status}</span></div>
+  <div class="sch-pol">${esc(s.policy)} · ${esc(s.years)}</div>
+  <div class="sch-head">${esc(s.headline)}</div>
+  <div class="sch-foot"><span class="sch-stat">${I.building}${esc(s.cmpTarget)} GCCs target</span><span class="chev">${I.chev}</span></div>
+</button>`;}
+
+function screenLocations(){
+  const seg=`<div class="seg"><button class="segbtn ${LOC_VIEW==='cities'?'on':''}" data-loc="cities">Cities</button>
+    <button class="segbtn ${LOC_VIEW==='schemes'?'on':''}" data-loc="schemes">State schemes</button></div>`;
+  let body;
+  if(LOC_VIEW==='cities'){
+    const list=CITYDATA.filter(c=>c.tier===CITY_TIER);
+    const tiers=`<div class="qrow"><button class="qchip ${CITY_TIER==='metro'?'on':''}" data-tier="metro">Metros</button>
+      <button class="qchip ${CITY_TIER==='tier2'?'on':''}" data-tier="tier2">Tier-2</button></div>`;
+    body=`<div class="pad">
+      <div class="loc-row">${tiers}<button class="cmpbtn" data-compare="1">${I.sortIcon}Compare</button></div>
+      <div class="seclead" style="margin-top:14px">GCC counts shown with the honest spread — tap a city to see why figures differ.</div>
+      <div class="ledger">${list.map(cityRow).join('')}</div>
+    </div>`;
+  } else {
+    body=`<div class="pad">
+      <div class="aggcard"><div class="n">1,380</div><div class="t"><b>GCCs & 12 lakh jobs</b> targeted by seven states by 2031.</div>${signalFootBadge('states7')}</div>
+      <div class="loc-row" style="margin-top:16px"><div class="seclead" style="margin:0">States are competing hard — compare what each offers.</div><button class="cmpbtn" data-schemecompare="1">${I.sortIcon}Compare</button></div>
+      <div style="margin-top:14px">${SCHEMES2.map(schemeCard).join('')}</div>
+    </div>`;
+  }
+  return `<div class="loc-head">${seg}</div>${body}`;
+}
+
+function screenCity(id){
+  const c=CITYDATA.find(x=>x.id===id);if(!c)return `<div class="empty"><div class="big">Not found</div></div>`;
+  const here=GCCS.filter(g=>cityMatch(g.cities,c.nm)).slice(0,5);
+  const countBlock=c.gccMax?`<div class="truthcard"><div class="top"><div class="cap"><span class="live"></span>GCCs in ${esc(c.nm)}</div>
+      <div class="bignum">${c.gccR.toLocaleString()}<span class="u">+</span></div>
+      <div class="bigsub">reported — but <b>estimates vary widely.</b></div></div>
+      ${rangeViz(c.gccMin,c.gccMax,c.gccR)}
+      <div class="srcrow">${srcChip(c.countSrc)}<button class="est" data-src="range">${I.info} Why the range?</button></div></div>`
+    :`<div class="truthcard"><div class="top"><div class="cap">Emerging hub</div><div class="bignum" style="font-size:38px">Tier-2</div>
+      <div class="bigsub">${esc(c.nm)} is an emerging GCC location in ${esc(c.state)}.</div></div>
+      <div class="srcrow">${srcChip(c.countSrc)}</div></div>`;
+  const statcells=`<div class="statrow citystat">
+    <div class="statcell"><div class="v" style="font-size:16px">${esc(c.talentLabel)}</div><div class="l">Talent pool</div><button class="src" data-src="talent">${I.shield}Reported</button></div>
+    <div class="statcell"><div class="v">₹${c.rentLo}<span class="u">–${c.rentHi}</span></div><div class="l">Rent / sq ft·mo</div><button class="src" data-src="cbre">${I.shield}CRE</button></div>
+    <div class="statcell"><div class="v">${c.attr}<span class="u">%</span></div><div class="l">Attrition</div><button class="src" data-src="talent">${I.shield}Est.</button></div>
+  </div>`;
+  const sectors=c.sectors.map((s,i)=>sbar(s.n,s.p,i)).join('');
+  const sal=BASE_SAL.map(r=>`<div class="salrow"><span class="srole">${esc(r.role)}</span><span class="sval">${salRange(r.lo,r.hi,c.salFactor)}</span></div>`).join('');
+  const clusters=c.clusters.map(cl=>`<span class="cchip">${I.pin}${esc(cl)}</span>`).join('');
+  const hereHtml=here.length?here.map(g=>`<button class="lrow" data-company="${g.id}"><div class="gav" style="background:${g.av};width:40px;height:40px;border-radius:11px;font-size:13px">${avatarText(g.nm)}</div>
+     <div><div class="cnm">${esc(g.nm)}</div><div class="cde">${esc(g.sec)}</div></div><span class="chev" style="margin-left:auto">${I.chev}</span></button>`).join(''):`<div class="relnone">${I.info}<span>The sample registry doesn’t list GCCs here yet.</span></div>`;
+  const sp=[['GCC count',SRC[c.countSrc].name,'Reported',c.countSrc],['Office rent','CRE sources','Reported','cbre'],['Salary benchmarks','Comp surveys','Estimate','comp'],['Talent pool','Talent trackers','Reported','talent']];
+  const sphtml=sp.map(r=>`<button class="sprow" data-src="${r[3]}"><div class="sl"><div class="k">${esc(r[0])}</div><div class="s">${I.shield}${esc(r[1])}</div></div>${cTag(r[2])}</button>`).join('');
+  return `<div class="cdetail fadein">
+    <div class="chead"><div class="cmeta" style="margin:0 0 8px">${esc(c.state)}${c.rank?` · #${c.rank} by GCC count`:' · Tier-2'}</div>
+      <div class="cnm" style="font-size:26px">${esc(c.nm)}</div></div>
+    <div style="padding:0 18px">${countBlock}</div>
+    ${statcells}
+    <div class="sec"><div class="sechead"><h2>Top sectors</h2></div><div class="sectors">${sectors}</div></div>
+    <div class="sec"><div class="sechead"><h2>Pay benchmarks</h2><span>${cTag('Estimate')}</span></div>
+      <div class="seclead">Typical annual pay, city-adjusted. Ranges, not precise figures.</div>
+      <div class="salbox">${sal}</div></div>
+    <div class="sec"><div class="sechead"><h2>Where GCCs cluster</h2></div><div class="cchips">${clusters}</div></div>
+    <div class="sec"><div class="sechead"><h2>GCCs here</h2></div><div class="ledger">${hereHtml}</div></div>
+    <div class="sec"><div class="sechead"><h2>Sources &amp; confidence</h2></div><div class="srcpanel">${sphtml}</div></div>
+    <div class="cfoot">City figures blend government, CRE and compensation sources. Counts are shown as ranges where they conflict.</div>
+  </div>`;
+}
+
+function screenScheme(id){
+  const s=SCHEMES2.find(x=>x.id===id);if(!s)return `<div class="empty"><div class="big">Not found</div></div>`;
+  const target=`<div class="statrow citystat">
+     <div class="statcell"><div class="v">${esc(s.cmpTarget)}</div><div class="l">GCCs targeted</div></div>
+     <div class="statcell"><div class="v" style="font-size:17px">${esc(s.jobTarget)}</div><div class="l">Jobs targeted</div></div>
+     <div class="statcell"><div class="v" style="font-size:15px">${esc(s.timeline)}</div><div class="l">Timeline</div></div>
+   </div>`;
+  const inc=s.incentives.map(i=>`<div class="incrow"><span class="ik">${esc(i.label)}</span><span class="iv">${esc(i.value)}</span></div>`).join('');
+  const elig=(s.eligibility&&s.eligibility.length)?`<div class="sec"><div class="sechead"><h2>Eligibility</h2></div><div class="inclist">${s.eligibility.map(i=>`<div class="incrow"><span class="ik">${esc(i.label)}</span><span class="iv">${esc(i.value)}</span></div>`).join('')}</div></div>`:'';
+  const extras=(s.extras&&s.extras.length)?`<div class="sec"><div class="sechead"><h2>Also included</h2></div><div class="ph-list">${s.extras.map(e=>`<div class="it"><span class="d" style="background:var(--brand)"></span><span>${esc(e)}</span></div>`).join('')}</div></div>`:'';
+  return `<div class="cdetail fadein">
+    <div class="chead"><div class="cmeta" style="margin:0 0 8px">${esc(s.policy)} · ${esc(s.years)}</div>
+      <div class="cnm" style="font-size:25px">${esc(s.state)}</div>
+      <div style="margin-top:12px"><span class="tag ${s.status==='Active'?'tag-live':'tag-announce'}"><span class="d"></span>${s.status}</span></div></div>
+    <div style="padding:0 18px"><div class="sg-headline" style="font-size:19px">${esc(s.headline)}</div></div>
+    ${target}
+    <div class="sec"><div class="sechead"><h2>Incentives</h2></div><div class="inclist">${inc}</div></div>
+    ${elig}
+    ${extras}
+    <div class="sec"><div class="sechead"><h2>Source</h2></div>
+      <div class="seclead">Summarised from the official policy. Tap to open the source.</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">${srcChip(s.src)}</div>
+      ${s.note?`<div class="relnone" style="margin-top:12px">${I.info}<span>${esc(s.note)}</span></div>`:''}</div>
+    <div class="cfoot">Incentive values are indicative and subject to approval under the state’s policy.</div>
+  </div>`;
+}
+
+function screenCompare(){
+  const a=CITYDATA.find(x=>x.id===CMP.a),b=CITYDATA.find(x=>x.id===CMP.b);
+  const col=(c,slot)=>`<button class="cmp-col-h" data-pick="${slot}"><div class="cmp-city">${esc(c.nm)}</div><div class="cmp-sub">${esc(c.state)} ${I.chevSm}</div></button>`;
+  const rows=[
+    ['GCCs',gccCountLabel(a),gccCountLabel(b)],
+    ['New setups',a.newLabel||'—',b.newLabel||'—'],
+    ['Office rent','₹'+a.rentLo+'–'+a.rentHi,'₹'+b.rentLo+'–'+b.rentHi],
+    ['SWE pay',salRange(16,30,a.salFactor),salRange(16,30,b.salFactor)],
+    ['Attrition',a.attr+'%',b.attr+'%'],
+    ['Top sector',a.sectors[0].n,b.sectors[0].n],
+    ['Talent',a.talentLabel,b.talentLabel],
+  ];
+  const body=rows.map(r=>`<div class="crow"><div class="cl">${esc(r[0])}</div><div class="cv">${esc(r[1])}</div><div class="cv">${esc(r[2])}</div></div>`).join('');
+  return `<div class="cmp">
+    <div class="cmp-head"><div class="cl"></div>${col(a,'a')}${col(b,'b')}</div>
+    <div class="cmp-body">${body}</div>
+    <div class="cfoot">Figures are reported or estimated, shown as ranges where sources conflict. Tap a city name to swap.</div>
+  </div>`;
+}
+function openCityPicker(slot){
+  const sh=$('#sheet');
+  sh.innerHTML=`<div class="grab"></div><h3>Choose a city</h3>
+   <div class="pick-list">${CITYDATA.map(c=>`<button class="pickrow" data-pickcity="${c.id}" data-slot="${slot}"><span>${esc(c.nm)}</span><span class="pm">${esc(c.state)}</span></button>`).join('')}</div>`;
+  sh.querySelectorAll('[data-pickcity]').forEach(btn=>btn.onclick=()=>{CMP[btn.dataset.slot]=btn.dataset.pickcity;closeSheet();render();});
+  openSheet();
+}
+function screenSchemeCompare(){
+  const rows=SCHEMES2.map(s=>`<tr><td class="st">${esc(s.state)}</td><td>${esc(s.cmpTarget)}</td><td>${esc(s.cmpCapital)}</td><td>${esc(s.cmpPayroll)}</td></tr>`).join('');
+  return `<div class="pad"><div class="seclead">Key incentives across states. Scroll sideways for more.</div>
+    <div class="ctab-wrap"><table class="ctab"><thead><tr><th>State</th><th>GCC target</th><th>Capital</th><th>Payroll</th></tr></thead><tbody>${rows}</tbody></table></div>
+    <div class="cfoot">Summarised from state policies; values are indicative. Tap a state in the list for full terms.</div></div>`;
+}
+
+/* ======================= PART 5 — ECOSYSTEM ======================= */
+let ECO_VIEW='providers', PCAT='all', TALENT_ROLE='Software Engineer';
+const PCATS=['All','Advisory','GCC-as-a-Service','Legal','Tax & audit','Real estate','Recruiting','EOR / Payroll'];
+const PROVIDERS2=[
+ {id:'ansr',nm:'ANSR',cat:'GCC-as-a-Service',av:'#2E3192',desc:'End-to-end setup & BOT',gccs:220,ratingVal:4.6,reviews:48,verified:true,founded:2004,
+  badges:['Everest PEAK Matrix','Track record verified'],services:['Setup','Build-Operate-Transfer','Talent (Talent500)','Operations'],sectors:['BFSI','Retail','Technology','Healthcare']},
+ {id:'zinnov',nm:'Zinnov',cat:'Advisory',av:'#8C5BE8',desc:'Location strategy & GCC advisory',gccs:250,ratingVal:4.5,reviews:37,verified:true,founded:2002,
+  badges:['NASSCOM partner','Everest-recognised'],services:['Location strategy','Benchmarking','GCC platform','Managed services'],sectors:['Technology','BFSI','Retail','Automotive']},
+ {id:'inductus',nm:'Inductus',cat:'GCC-as-a-Service',av:'#17B26A',desc:'Managed GCC setup',gccs:60,ratingVal:4.3,reviews:12,verified:true,founded:2013,
+  badges:['Track record verified'],services:['Setup','Compliance','HR & admin','Payroll']},
+ {id:'ams',nm:'AMS',cat:'GCC-as-a-Service',av:'#0E9CA5',desc:'Talent-led GCC enablement',gccs:40,ratingVal:4.2,reviews:9,verified:true,founded:1996,
+  badges:['Talent specialist'],services:['Talent','RPO','Advisory','Operations']},
+ {id:'nishith',nm:'Nishith Desai Associates',cat:'Legal',av:'#15172A',desc:'Entity, FEMA & IP',gccs:null,ratingVal:4.7,reviews:21,verified:true,founded:1989,
+  badges:['Specialist'],services:['Entity setup','FEMA / RBI','IP & data','Contracts']},
+ {id:'ksk',nm:'King Stubb & Kasiva',cat:'Legal',av:'#C0392B',desc:'Corporate & regulatory',gccs:null,ratingVal:4.4,reviews:14,verified:true,founded:2005,
+  badges:[],services:['Incorporation','Labour law','DPDPA','Compliance']},
+ {id:'dhruva',nm:'Dhruva Advisors',cat:'Tax & audit',av:'#2E7BF6',desc:'Transfer pricing & APAs',gccs:null,ratingVal:4.6,reviews:18,verified:true,founded:2014,
+  badges:['Tax specialist'],services:['Transfer pricing','APA','Corporate tax','GST']},
+ {id:'bdo',nm:'BDO India',cat:'Tax & audit',av:'#E5484D',desc:'Tax & statutory compliance',gccs:null,ratingVal:4.3,reviews:11,verified:true,founded:1963,
+  badges:[],services:['Tax','Audit','Compliance','Advisory']},
+ {id:'cbre',nm:'CBRE',cat:'Real estate',av:'#17B26A',desc:'Office leasing & fit-out',gccs:null,ratingVal:4.4,reviews:26,verified:true,founded:1906,
+  badges:['Market leader'],services:['Leasing','Fit-out','Advisory','Property management']},
+ {id:'colliers',nm:'Colliers',cat:'Real estate',av:'#2E3192',desc:'Workspace & location advisory',gccs:null,ratingVal:4.2,reviews:15,verified:true,founded:1976,
+  badges:[],services:['Leasing','Flex space','Advisory']},
+ {id:'taggd',nm:'Taggd',cat:'Recruiting',av:'#E08B00',desc:'RPO & talent',gccs:null,ratingVal:4.3,reviews:13,verified:true,founded:2016,
+  badges:[],services:['RPO','Leadership hiring','Employer branding']},
+ {id:'ciel',nm:'CIEL HR',cat:'Recruiting',av:'#8C5BE8',desc:'Staffing & talent intelligence',gccs:null,ratingVal:4.1,reviews:10,verified:true,founded:2015,
+  badges:[],services:['Staffing','Comp benchmarking','RPO']},
+ {id:'wisemonk',nm:'Wisemonk',cat:'EOR / Payroll',av:'#0E9CA5',desc:'EOR, payroll & BOT',gccs:null,ratingVal:4.5,reviews:22,verified:true,founded:2021,
+  badges:['India specialist'],services:['EOR','Payroll','Compliance','BOT']},
+ {id:'deel',nm:'Deel',cat:'EOR / Payroll',av:'#2E7BF6',desc:'Global EOR platform',gccs:null,ratingVal:4.4,reviews:40,verified:true,founded:2019,
+  badges:[],services:['EOR','Payroll','Contractors']},
+ {id:'multiplier',nm:'Multiplier',cat:'EOR / Payroll',av:'#C0392B',desc:'EOR & global payroll',gccs:null,ratingVal:4.2,reviews:16,verified:true,founded:2020,
+  badges:[],services:['EOR','Payroll']},
+];
+const REVIEWS=[
+ {s:5,role:'India Head, BFSI GCC',t:'Ran our setup end to end — entity, hiring and workspace — and hit the timeline they promised.'},
+ {s:4,role:'COO, Retail GCC',t:'Strong on execution and local know-how. Cross-time-zone communication could be a touch tighter.'},
+ {s:5,role:'VP Engineering, Technology GCC',t:'Helped us scale leadership hiring fast, and the market benchmarks were genuinely useful.'},
+ {s:4,role:'CFO, Healthcare GCC',t:'Solid on compliance and transfer pricing. Pricing was on the higher side, but worth it.'},
+];
+function provReviews(p){const b=hashIdx(p.id,REVIEWS.length);return [REVIEWS[b%REVIEWS.length],REVIEWS[(b+1)%REVIEWS.length]];}
+function stars(n){let h='';for(let i=0;i<5;i++)h+=`<span class="st ${i<n?'on':''}">${I.star}</span>`;return `<span class="stars">${h}</span>`;}
+
+function provCard(p){return `<button class="gcard" data-provider="${p.id}">
+  <div class="gav" style="background:${p.av}">${avatarText(p.nm)}</div>
+  <div class="gmid">
+    <div class="gnm">${esc(p.nm)}${p.verified?`<span class="vchk">${I.shield}</span>`:''}</div>
+    <div class="gde">${esc(p.cat)} · ${esc(p.desc)}</div>
+    <div class="metarow">
+      ${p.gccs?`<span class="m hot">${I.building}${p.gccs} GCCs</span>`:''}
+      <span class="m rate">${I.star}${p.ratingVal} (${p.reviews})</span>
+      ${p.badges&&p.badges[0]?`<span class="m">${I.shield}${esc(p.badges[0])}</span>`:''}
+    </div>
+  </div><span class="chev">${I.chev}</span></button>`;}
+
+function providersBody(){
+  const list=PROVIDERS2.filter(p=>PCAT==='all'||p.cat===PCAT);
+  const chips=PCATS.map(c=>{const id=c==='All'?'all':c;const on=PCAT===id;
+    return `<button class="qchip ${on?'on':''}" data-pcat="${esc(id)}">${esc(c)}</button>`;}).join('');
+  return `<div class="dir-controls"><div class="qrow">${chips}</div></div>
+    <div class="pad">
+      <div class="disc">${I.info}<span>Track records and analyst recognitions are real where shown; ratings and reviews are illustrative in this prototype.</span></div>
+      <button class="verify-link" data-trust="1">${I.shield}<span>How Atlas verifies who actually delivers</span>${I.chevSm}</button>
+      <div style="margin-top:14px">${list.map(provCard).join('')}</div>
+    </div>`;
+}
+
+function screenProvider(id){
+  const p=PROVIDERS2.find(x=>x.id===id);if(!p)return `<div class="empty"><div class="big">Not found</div></div>`;
+  const rv=provReviews(p);
+  const stat3=`<div class="statrow citystat">
+    <div class="statcell"><div class="v" style="display:flex;align-items:center;gap:4px">${p.ratingVal}<span style="color:var(--accent-bright);display:inline-flex">${I.star}</span></div><div class="l">Rating</div><button class="src" data-src="reviews">${I.shield}Sample</button></div>
+    <div class="statcell"><div class="v">${p.gccs?p.gccs:(p.founded||'—')}</div><div class="l">${p.gccs?'GCCs enabled':'Founded'}</div><button class="src" data-src="${p.gccs?'track':'website'}">${I.shield}${p.gccs?'Verified':'Reported'}</button></div>
+    <div class="statcell"><div class="v">${p.reviews}</div><div class="l">Reviews</div><button class="src" data-src="reviews">${I.shield}Sample</button></div>
+  </div>`;
+  const services=p.services.map(s=>`<span class="ftag">${esc(s)}</span>`).join('');
+  const sectors=(p.sectors||[]).map(s=>`<span class="cchip">${esc(s)}</span>`).join('');
+  const badges=(p.badges||[]).map(bd=>`<div class="tr-badge">${I.shield}<span>${esc(bd)}</span></div>`).join('');
+  const reviews=rv.map(r=>`<div class="rev"><div class="rev-top">${stars(r.s)}<span class="rev-role">${esc(r.role)}</span></div><div class="rev-t">${esc(r.t)}</div></div>`).join('');
+  const hasEverest=(p.badges||[]).some(b=>/Everest/.test(b));
+  const vp=[['Track record','Entity records + client confirmation','Verified','track']];
+  if(hasEverest)vp.push(['Analyst recognition','Everest / Avasant','Reported','everest']);
+  vp.push(['Ratings & reviews','Atlas community','Estimate','reviews']);
+  const vphtml=vp.map(r=>`<button class="sprow" data-src="${r[3]}"><div class="sl"><div class="k">${esc(r[0])}</div><div class="s">${I.shield}${esc(r[1])}</div></div>${cTag(r[2])}</button>`).join('');
+  return `<div class="cdetail fadein">
+    <div class="chead"><div class="cav" style="background:${p.av}">${avatarText(p.nm)}</div>
+      <div class="cnm">${esc(p.nm)}${p.verified?`<span class="vchk">${I.shield}</span>`:''}</div>
+      <div class="cmeta">${esc(p.cat)} · ${esc(p.desc)}</div></div>
+    ${stat3}
+    <div class="sec"><div class="sechead"><h2>What they do</h2></div><div class="ftags">${services}</div></div>
+    <div class="sec"><div class="sechead"><h2>Track record</h2></div>
+      ${badges?`<div class="tr-badges">${badges}</div>`:''}
+      ${sectors?`<div class="seclead" style="margin:${badges?'14px':'0'} 0 10px">Sectors served</div><div class="cchips">${sectors}</div>`:'<div class="relnone">'+I.info+'<span>Track-record detail is compiled from engagements and entity records.</span></div>'}
+    </div>
+    <div class="sec"><div class="sechead"><h2>Reviews</h2><span>${cTag('Estimate')}</span></div>
+      <div class="revbox">${reviews}</div></div>
+    <div class="sec"><div class="sechead"><h2>How Atlas verifies</h2></div><div class="srcpanel">${vphtml}</div></div>
+    <button class="cta-ghost" data-toast="Intro requested — the provider is notified (demo)">${I.people}Request an intro</button>
+    <div class="cfoot">Atlas is neutral: providers can’t pay to rank. Track records are verified; reviews are community-contributed.</div>
+  </div>`;
+}
+
+function talentSalaryCity(roleName){
+  const r=BASE_SAL.find(x=>x.role===roleName)||BASE_SAL[0];
+  const metros=CITYDATA.filter(c=>c.tier==='metro');
+  return metros.map(c=>{const w=Math.round((c.salFactor/1.0)*100);
+    return `<div class="salcity"><div class="scrow"><span class="scn">${esc(c.nm)}</span><span class="scv">${salRange(r.lo,r.hi,c.salFactor)}</span></div>
+     <div class="sbtrack"><div class="sbfill" style="width:${w}%;background:var(--brand)"></div></div></div>`;}).join('');
+}
+function talentBody(){
+  const roles=BASE_SAL.map(r=>r.role);
+  const rolechips=roles.map(r=>`<button class="qchip ${TALENT_ROLE===r?'on':''}" data-role="${esc(r)}">${esc(r)}</button>`).join('');
+  const stats=[['9.8%','Avg salary hike, 2025','comp'],['12–18%','Attrition range','talent'],['60%','Hires from other GCCs','talent'],['30–50%','AI/ML pay premium','comp']];
+  const tgrid=stats.map(s=>`<div class="tcell"><div class="tv">${esc(s[0])}</div><div class="tl">${esc(s[1])}</div><button class="src" data-src="${s[2]}">${I.shield}${s[2]==='comp'?'Estimate':'Reported'}</button></div>`).join('');
+  const skills=[['AI & Machine Learning','30–50% premium','hot'],['Cloud & DevOps','High demand',''],['Data engineering','High demand',''],['Cybersecurity','Scarce talent','hot'],['Product management','Growing','']];
+  const skhtml=skills.map(s=>`<div class="skrow"><span class="skn">${esc(s[0])}</span><span class="sktag ${s[2]?'hot':''}">${esc(s[1])}</span></div>`).join('');
+  return `<div class="pad">
+    <div class="tgrid">${tgrid}</div>
+    <div class="sec" style="padding-top:22px"><div class="sechead"><h2>Pay by city</h2><span>${cTag('Estimate')}</span></div>
+      <div class="seclead">Typical annual pay for a role, across the top metros. Ranges, city-adjusted.</div>
+      <div class="qrow" style="margin-bottom:16px">${rolechips}</div>
+      <div class="salcitybox">${talentSalaryCity(TALENT_ROLE)}</div>
+      <div style="margin-top:14px;display:flex;gap:8px;flex-wrap:wrap">${srcChip('comp')}</div></div>
+    <div class="sec"><div class="sechead"><h2>In-demand skills</h2></div><div class="skbox">${skhtml}</div></div>
+    <div class="cfoot">Pay blends compensation surveys with crowdsourced data; demand reflects hiring-signal trends.</div>
+  </div>`;
+}
+
+function screenEcosystem(){
+  const seg=`<div class="seg"><button class="segbtn ${ECO_VIEW==='providers'?'on':''}" data-eco="providers">Providers</button>
+    <button class="segbtn ${ECO_VIEW==='talent'?'on':''}" data-eco="talent">Talent & pay</button></div>`;
+  return `<div class="loc-head">${seg}</div>${ECO_VIEW==='providers'?providersBody():talentBody()}`;
+}
+
+function screenTrust(){
+  const tiers=[
+    ['Verified','tag-live','Checked against official records — the company registry (MCA/RoC) by CIN.'],
+    ['Reported','tag-neutral','From a named source: a company site, named press, a CRE lease, or a policy document.'],
+    ['Live','tag-live','Continuously updated from job boards and feeds.'],
+    ['Estimate','tag-announce','Modelled by Atlas, not measured — always shown as a range.'],
+    ['Announced','tag-announce','Stated intent, not yet independently confirmed.'],
+  ];
+  const tierHtml=tiers.map(t=>`<div class="tierrow"><span class="tag ${t[1]}"><span class="d"></span>${t[0]}</span><span class="tierdef">${esc(t[2])}</span></div>`).join('');
+  const srcs=[['MCA / RoC','Entities, directors, capital — CIN-verified','mca'],['STPI / SOFTEX','Operating IT export units','stpi'],['CRE sources','Leases, rents, clusters','cbre'],['Job boards','Live hiring signals','jobs'],['Business press','Announcements & expansions','press'],['LinkedIn / company','Leadership (compliantly sourced)','linkedin'],['Comp surveys','Salary benchmarks','comp'],['State policies','Incentives & schemes','states7']];
+  const srcHtml=srcs.map(s=>`<button class="sprow" data-src="${s[2]}"><div class="sl"><div class="k">${esc(s[0])}</div><div class="s">${I.shield}${esc(s[1])}</div></div>${I.chevSm}</button>`).join('');
+  const why=['One company can run several centres — counting companies vs units swings totals by ~75%.','“GCC” is defined differently across reports (captive only, or any foreign-HQ firm with India staff).','Some tallies mix active, announced and merely registered entities.','Annual reports, quarterly trackers and live feeds all snapshot different dates.','Many public tables cite no underlying source and are copied unverified.'];
+  const whyHtml=why.map(w=>`<div class="it"><span class="d" style="background:var(--accent-bright)"></span><span>${esc(w)}</span></div>`).join('');
+  const fresh=[['Entities & directors','Refreshed from the registry regularly'],['Signals & hiring','Updated daily'],['Rents & benchmarks','Refreshed quarterly'],['State policies','Updated when they change']];
+  const freshHtml=fresh.map(f=>`<div class="incrow"><span class="ik">${esc(f[0])}</span><span class="iv">${esc(f[1])}</span></div>`).join('');
+  return `<div class="cdetail fadein">
+    <div class="trusthero"><div class="th-ic">${I.shieldFill}</div>
+      <h2>Every number has a receipt</h2>
+      <p>Atlas is the neutral layer for the GCC ecosystem. It sells no setup, real estate or advisory — so its only job is to be right. No ads. No pay-to-rank.</p></div>
+    <div class="sec"><div class="sechead"><h2>Confidence on every number</h2></div>
+      <div class="seclead">Each figure is tagged so you can judge it yourself.</div>
+      <div class="tierbox">${tierHtml}</div></div>
+    <div class="sec"><div class="sechead"><h2>Where the data comes from</h2></div>
+      <div class="srcpanel">${srcHtml}</div></div>
+    <div class="sec"><div class="sechead"><h2>Why counts disagree</h2></div>
+      <div class="seclead">The “numbers problem” is structural, not sloppiness — so Atlas shows ranges, not false precision.</div>
+      <div class="ph-list">${whyHtml}</div></div>
+    <div class="sec"><div class="sechead"><h2>How fresh is it</h2></div><div class="inclist">${freshHtml}</div></div>
+    <div class="cfoot">Atlas aggregates data that already exists but is scattered — then verifies, dates and sources every field.</div>
+  </div>`;
+}
+
+/* ======================= APP BARS ======================= */
+function barHome(){
+  return `<div class="appbar flush">
+    <div class="brand"><div class="glyph">${I.shieldFill.replace(/currentColor/g,'#fff')}</div>
+      <div class="wm">Atlas</div></div>
+    <div class="right"><span class="pill-india"><span class="dot"></span>India</span></div>
+  </div>`;
+}
+function barSearch(q){
+  return `<div class="searchhead">
+    <button class="back" data-back="1" style="width:38px;height:38px;border-radius:11px;display:grid;place-items:center;background:var(--surface-2)">${I.back}</button>
+    <div class="inp">${I.search}<input id="searchInput" placeholder="Search GCCs, cities, schemes…" value="${esc(q||'')}" autocomplete="off"/>
+      ${q?`<button class="clr" data-clear="1">${I.close}</button>`:''}</div>
+  </div>`;
+}
+function barTitle(t){
+  return `<div class="appbar"><div class="title">${esc(t)}</div></div>`;
+}
+function barDirectory(){
+  const active=filterActive();
+  return `<div class="appbar">
+    <div class="title">GCC registry</div>
+    <div class="right">
+      <button class="iconbtn" data-go="search">${I.search}</button>
+      <button class="iconbtn ${active?'on':''}" data-openfilter="1">${I.filter}${active?'<span class="fdot"></span>':''}</button>
+    </div>
+  </div>`;
+}
+function barCompany(c){
+  return `<div class="appbar">
+    <button class="back" data-back="1">${I.back}</button>
+    <div class="title" style="flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:16.5px">${esc(c.nm)}</div>
+  </div>`;
+}
+function barSignal(s){
+  return `<div class="appbar">
+    <button class="back" data-back="1">${I.back}</button>
+    <div class="title" style="flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:16.5px">${esc(s.nm)}</div>
+  </div>`;
+}
+function barCity(c){
+  return `<div class="appbar"><button class="back" data-back="1">${I.back}</button>
+    <div class="title" style="flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:16.5px">${esc(c.nm)}</div></div>`;
+}
+function barScheme(s){
+  return `<div class="appbar"><button class="back" data-back="1">${I.back}</button>
+    <div class="title" style="flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:16.5px">${esc(s.state)}</div></div>`;
+}
+function barProvider(p){
+  return `<div class="appbar"><button class="back" data-back="1">${I.back}</button>
+    <div class="title" style="flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:16.5px">${esc(p.nm)}</div></div>`;
+}
+
+/* ======================= BOTTOM NAV ======================= */
+const TABS=[
+  {id:'explore',icon:'explore',lab:'Explore'},
+  {id:'gccs',icon:'building',lab:'GCCs'},
+  {id:'pipeline',icon:'signal',lab:'Pipeline'},
+  {id:'locations',icon:'pin',lab:'Locations'},
+  {id:'ecosystem',icon:'grid',lab:'Ecosystem'},
+];
+function renderNav(){
+  $('#nav').outerHTML = `<div class="bottomnav" id="nav">${TABS.map(t=>`
+    <button class="navitem ${State.tab===t.id&&!State.stack.length?'active':''}" data-navtab="${t.id}">
+      <span class="ic">${I[t.icon]}</span><span class="lab">${t.lab}</span>
+    </button>`).join('')}</div>`;
+}
+
+/* ======================= ROUTER ======================= */
+const State={tab:'explore',stack:[]}; // stack: [{screen:'search',q:''}]
+function rootOf(tab){
+  if(tab==='explore') return {bar:barHome(),body:screenHome()};
+  if(tab==='gccs') return {bar:barDirectory(),body:screenDirectory()};
+  if(tab==='pipeline') return {bar:barTitle("Who's coming next"),body:screenPipeline()};
+  if(tab==='locations') return {bar:barTitle('Locations'),body:screenLocations()};
+  if(tab==='ecosystem') return {bar:barTitle('Ecosystem'),body:screenEcosystem()};
+  return {bar:barTitle(TABS.find(t=>t.id===tab).lab), body:screenPlaceholder(tab)};
+}
+function render(){
+  let bar,body;
+  if(State.stack.length){
+    const top=State.stack[State.stack.length-1];
+    if(top.screen==='search'){bar=barSearch(top.q);body=screenSearch(top.q);}
+    else if(top.screen==='company'){bar=barCompany(GCCS.find(x=>x.id===top.id));body=screenCompany(top.id);}
+    else if(top.screen==='signal'){bar=barSignal(SIGNALS.find(x=>x.id===top.id));body=screenSignal(top.id);}
+    else if(top.screen==='city'){bar=barCity(CITYDATA.find(x=>x.id===top.id));body=screenCity(top.id);}
+    else if(top.screen==='scheme'){bar=barScheme(SCHEMES2.find(x=>x.id===top.id));body=screenScheme(top.id);}
+    else if(top.screen==='compare'){bar=barTitle('Compare cities');body=screenCompare();}
+    else if(top.screen==='schemecompare'){bar=barTitle('Compare incentives');body=screenSchemeCompare();}
+    else if(top.screen==='provider'){bar=barProvider(PROVIDERS2.find(x=>x.id===top.id));body=screenProvider(top.id);}
+    else if(top.screen==='trust'){bar=barTitle('How we know this');body=screenTrust();}
+  } else {
+    const r=rootOf(State.tab); bar=r.bar; body=r.body;
+  }
+  $('#appbar').outerHTML=`<div id="appbar">${bar}</div>`;
+  const sc=$('#screen'); sc.innerHTML=body; sc.scrollTop=0;
+  renderNav();
+  if(State.stack.length && State.stack[State.stack.length-1].screen==='search'){
+    const inp=$('#searchInput'); if(inp){inp.focus(); 
+      inp.oninput=e=>{const q=e.target.value; State.stack[State.stack.length-1].q=q;
+        const sc2=$('#screen'); sc2.innerHTML=screenSearch(q);
+        // keep the X in sync without re-rendering the bar/focus
+        bindScreen();
+      };}
+  }
+  bindScreen();
+}
+function switchTab(tab){State.tab=tab;State.stack=[];render();}
+function go(screen,params){State.stack.push(Object.assign({screen},params||{}));render();}
+function back(){State.stack.pop();render();}
+
+/* ======================= SHEETS / TOAST ======================= */
+function openSrc(id){
+  const s=SRC[id];
+  const url = s.url? `<a class="link" href="https://${s.url}" target="_blank" rel="noopener">${I.ext} Open ${esc(s.url)}</a>`:'';
+  $('#sheet').innerHTML=`
+    <div class="grab"></div>
+    <h3><span class="vb">${I.shield}</span>Source</h3>
+    <div class="srcmeta">
+      <div class="m"><span class="k">Publisher</span><span class="v">${esc(s.full)}</span></div>
+      <div class="m"><span class="k">As of</span><span class="v">${esc(s.asof)}</span></div>
+      <div class="m"><span class="k">Confidence</span><span class="v ${['Verified','Verified count','Reported','Live'].includes(s.conf)?'ok':''}">${esc(s.conf)}</span></div>
+    </div>
+    <div class="note">${esc(s.note)}</div>
+    ${url}
+    <div class="foot-note">Atlas shows provenance on every figure so you can judge it yourself — and flags when numbers are estimated rather than measured.</div>
+    <button class="link" style="background:var(--surface-2);color:var(--brand);margin-top:10px" id="srcTrust">${I.shield} How Atlas sources data</button>`;
+  const tb=$('#srcTrust'); if(tb) tb.onclick=()=>{closeSheet();go('trust');};
+  openSheet();
+}
+function openSheet(){$('#scrim').classList.add('on');$('#sheet').classList.add('on');}
+function closeSheet(){$('#scrim').classList.remove('on');$('#sheet').classList.remove('on');}
+let toastT;
+function toast(msg){const t=$('#toast');t.textContent=msg;t.classList.add('on');
+  clearTimeout(toastT);toastT=setTimeout(()=>t.classList.remove('on'),2200);}
+
+/* ======================= EVENT BINDING ======================= */
+function bindScreen(){
+  document.querySelectorAll('[data-src]').forEach(b=>b.onclick=e=>{e.stopPropagation();openSrc(b.dataset.src);});
+  document.querySelectorAll('[data-tab]').forEach(b=>b.onclick=()=>switchTab(b.dataset.tab));
+  document.querySelectorAll('[data-go="search"]').forEach(b=>b.onclick=()=>go('search',{q:''}));
+  document.querySelectorAll('[data-q]').forEach(b=>b.onclick=()=>{
+    const top=State.stack[State.stack.length-1];
+    if(top&&top.screen==='search'){top.q=b.dataset.q;render();}
+  });
+  document.querySelectorAll('[data-clear]').forEach(b=>b.onclick=()=>{
+    const top=State.stack[State.stack.length-1]; if(top){top.q='';render();}});
+  document.querySelectorAll('[data-back]').forEach(b=>b.onclick=()=>back());
+  document.querySelectorAll('[data-toast]').forEach(b=>b.onclick=()=>toast(b.dataset.toast));
+  document.querySelectorAll('[data-navtab]').forEach(b=>b.onclick=()=>switchTab(b.dataset.navtab));
+  document.querySelectorAll('[data-company]').forEach(b=>b.onclick=()=>go('company',{id:b.dataset.company}));
+  document.querySelectorAll('[data-openfilter]').forEach(b=>b.onclick=()=>openFilter());
+  document.querySelectorAll('[data-sort]').forEach(b=>b.onclick=()=>{SORT=SORT==='name'?'hc':SORT==='hc'?'cities':'name';render();});
+  document.querySelectorAll('[data-qsec]').forEach(b=>b.onclick=()=>{const s=b.dataset.qsec;
+    if(s==='All')FILTER.sectors.clear();else FILTER.sectors=new Set([s]);render();});
+  document.querySelectorAll('[data-signal]').forEach(b=>b.onclick=()=>go('signal',{id:b.dataset.signal}));
+  document.querySelectorAll('[data-stage]').forEach(b=>b.onclick=()=>{PIPE_STAGE=b.dataset.stage;render();});
+  document.querySelectorAll('[data-city]').forEach(b=>b.onclick=()=>go('city',{id:b.dataset.city}));
+  document.querySelectorAll('[data-scheme]').forEach(b=>b.onclick=()=>go('scheme',{id:b.dataset.scheme}));
+  document.querySelectorAll('[data-loc]').forEach(b=>b.onclick=()=>{LOC_VIEW=b.dataset.loc;render();});
+  document.querySelectorAll('[data-tier]').forEach(b=>b.onclick=()=>{CITY_TIER=b.dataset.tier;render();});
+  document.querySelectorAll('[data-compare]').forEach(b=>b.onclick=()=>go('compare'));
+  document.querySelectorAll('[data-schemecompare]').forEach(b=>b.onclick=()=>go('schemecompare'));
+  document.querySelectorAll('[data-pick]').forEach(b=>b.onclick=()=>openCityPicker(b.dataset.pick));
+  document.querySelectorAll('[data-provider]').forEach(b=>b.onclick=()=>go('provider',{id:b.dataset.provider}));
+  document.querySelectorAll('[data-eco]').forEach(b=>b.onclick=()=>{ECO_VIEW=b.dataset.eco;render();});
+  document.querySelectorAll('[data-pcat]').forEach(b=>b.onclick=()=>{PCAT=b.dataset.pcat;render();});
+  document.querySelectorAll('[data-role]').forEach(b=>b.onclick=()=>{TALENT_ROLE=b.dataset.role;render();});
+  document.querySelectorAll('[data-trust]').forEach(b=>b.onclick=()=>go('trust'));
+}
+$('#scrim').onclick=closeSheet;
+
+/* clock */
+function tick(){const d=new Date();let h=d.getHours(),m=d.getMinutes();
+  $('#clock').textContent=`${h}:${String(m).padStart(2,'0')}`;}
+tick();setInterval(tick,10000);
+
+/* boot */
+render();
+</script>
+</body>
+</html>
